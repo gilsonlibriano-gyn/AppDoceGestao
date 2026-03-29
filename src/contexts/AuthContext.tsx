@@ -49,7 +49,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     } catch (err: any) {
       console.error("Login error:", err);
-      setError(err.message || "Erro ao entrar. Verifique seu e-mail e senha.");
+      let message = "Erro ao entrar. Verifique seu e-mail e senha.";
+      if (err.message === 'Invalid login credentials') {
+        message = "E-mail ou senha incorretos. Verifique os dados ou cadastre-se.";
+      } else if (err.message === 'Email not confirmed') {
+        message = "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
+      }
+      setError(message);
     }
   };
 
