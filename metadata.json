@@ -1,5 +1,5 @@
 {
   "name": "Doce Gestão - Precificação",
   "description": "Sistema profissional de gestão de custos e precificação para confeitaria e panificação. Funciona em PC e Mobile com sincronização em tempo real.",
-  "requestFramePermissions": []
+  "requestFramePermissions": ["camera"]
 }

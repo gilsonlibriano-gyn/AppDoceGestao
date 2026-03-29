@@ -13,7 +13,6 @@ import { Precificacao } from './components/Precificacao';
 import { Configuracoes } from './components/Configuracoes';
 import { CustosFixos } from './components/CustosFixos';
 import { Depreciacao } from './components/Depreciacao';
-import { Estoque } from './components/Estoque';
 import { ErrorBoundary } from './components/ErrorBoundary';
 
 export default function App() {
@@ -24,7 +23,6 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Dashboard />} />
             <Route path="/insumos" element={<Insumos />} />
-            <Route path="/estoque" element={<Estoque />} />
             <Route path="/receitas" element={<Receitas />} />
             <Route path="/custos-fixos" element={<CustosFixos />} />
             <Route path="/depreciacao" element={<Depreciacao />} />

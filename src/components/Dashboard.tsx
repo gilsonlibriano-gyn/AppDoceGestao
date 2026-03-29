@@ -12,7 +12,9 @@ import {
   ArrowUpRight,
   ArrowDownRight,
   DollarSign,
-  Loader2
+  Loader2,
+  Calculator,
+  Wallet
 } from 'lucide-react';
 import { Card } from './ui/Common';
 import { formatCurrency, cn } from '../lib/utils';
@@ -38,7 +40,6 @@ export function Dashboard() {
     insumosCount: 0,
     receitasCount: 0,
     custoFixoTotal: 0,
-    valorEstoqueTotal: 0,
     margemMedia: 0,
     criticalItems: [] as any[]
   });
@@ -75,7 +76,6 @@ export function Dashboard() {
       try {
         const totalCF = state.custos.reduce((s, c) => s + c.valor, 0);
         const totalDepr = CostService.calculateTotalDepreciationMonthly(state.bens);
-        const totalEstoque = state.insumos.reduce((s, i) => s + ((i.estoqueAtual || 0) * (i.preco || 0)), 0);
         
         let totalMargem = 0;
         const chartData = state.receitas.slice(0, 6).map(r => {
@@ -114,25 +114,12 @@ export function Dashboard() {
           };
         });
 
-        const criticalItems = state.insumos
-          .filter(i => i.estoqueAtual <= i.estoqueMinimo)
-          .sort((a, b) => (a.estoqueAtual / (a.estoqueMinimo || 1)) - (b.estoqueAtual / (b.estoqueMinimo || 1)))
-          .slice(0, 4)
-          .map(i => ({
-            id: i.id,
-            name: i.nome,
-            stock: `${i.estoqueAtual}${i.unidadeMedida}`,
-            min: `${i.estoqueMinimo}${i.unidadeMedida}`,
-            status: i.estoqueAtual === 0 ? 'Crítico' : 'Baixo'
-          }));
-
         setStats({
           insumosCount: state.insumos.length,
           receitasCount: state.receitas.length,
           custoFixoTotal: totalCF + totalDepr,
-          valorEstoqueTotal: totalEstoque,
           margemMedia: state.receitas.length > 0 ? totalMargem / state.receitas.length : 0,
-          criticalItems
+          criticalItems: []
         });
 
         setChartData(chartData.length > 0 ? chartData : [
@@ -189,8 +176,8 @@ export function Dashboard() {
       bg: 'bg-emerald-50'
     },
     { 
-      label: 'Valor em Estoque', 
-      value: formatCurrency(stats.valorEstoqueTotal), 
+      label: 'Insumos Cadastrados', 
+      value: stats.insumosCount.toString(), 
       icon: Package, 
       trend: 'Ativos', 
       trendUp: true,
@@ -312,33 +299,43 @@ export function Dashboard() {
         </Card>
 
         <Card className="p-6">
-          <h3 className="font-bold text-neutral-900 mb-6">Insumos Críticos</h3>
+          <h3 className="font-bold text-neutral-900 mb-6">Resumo de Precificação</h3>
           <div className="space-y-6">
-            {stats.criticalItems.length === 0 ? (
-              <p className="text-sm text-neutral-400 text-center py-8">Nenhum insumo em nível crítico.</p>
-            ) : (
-              stats.criticalItems.map((item) => (
-                <div key={item.id || item.name} className="flex items-center justify-between">
-                  <div className="flex flex-col">
-                    <span className="font-medium text-neutral-900">{item.name}</span>
-                    <span className="text-xs text-neutral-500">Mín: {item.min}</span>
-                  </div>
-                  <div className="text-right">
-                    <div className={cn(
-                      "text-xs font-bold px-2 py-1 rounded-lg mb-1",
-                      item.status === 'Crítico' ? "bg-red-50 text-red-600" : "bg-amber-50 text-amber-600"
-                    )}>
-                      {item.status}
-                    </div>
-                    <span className="text-sm font-bold text-neutral-900">{item.stock}</span>
-                  </div>
-                </div>
-              ))
-            )}
+            <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
+              <div className="flex items-center gap-3 mb-2">
+                <Calculator className="w-5 h-5 text-orange-600" />
+                <span className="font-bold text-neutral-900 text-sm">Meta de Lucro</span>
+              </div>
+              <p className="text-2xl font-black text-orange-600 tracking-tight">
+                {config?.lucroPretendidoPercentual || 30}%
+              </p>
+              <p className="text-[10px] text-orange-600/70 mt-1 italic">
+                Definido nas configurações globais.
+              </p>
+            </div>
+
+            <div className="p-4 bg-indigo-50 rounded-2xl border border-indigo-100">
+              <div className="flex items-center gap-3 mb-2">
+                <Wallet className="w-5 h-5 text-indigo-600" />
+                <span className="font-bold text-neutral-900 text-sm">Rateio de Custos</span>
+              </div>
+              <p className="text-sm font-medium text-neutral-600">
+                O custo fixo mensal de <span className="font-bold text-neutral-900">{formatCurrency(stats.custoFixoTotal)}</span> é diluído na sua produção mensal.
+              </p>
+            </div>
+
+            <div className="p-4 bg-emerald-50 rounded-2xl border border-emerald-100">
+              <div className="flex items-center gap-3 mb-2">
+                <TrendingUp className="w-5 h-5 text-emerald-600" />
+                <span className="font-bold text-neutral-900 text-sm">Saúde Financeira</span>
+              </div>
+              <p className="text-sm font-medium text-neutral-600">
+                {stats.margemMedia >= (config?.lucroPretendidoPercentual || 30) 
+                  ? "Sua margem média está acima da meta definida. Ótimo!" 
+                  : "Sua margem média está abaixo da meta. Revise seus preços."}
+              </p>
+            </div>
           </div>
-          <button className="w-full mt-8 py-3 text-sm font-bold text-orange-600 bg-orange-50 rounded-xl hover:bg-orange-100 transition-colors">
-            Ver Estoque Completo
-          </button>
         </Card>
       </div>
     </div>

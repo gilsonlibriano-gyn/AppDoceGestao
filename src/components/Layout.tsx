@@ -27,7 +27,6 @@ import { Button } from './ui/Common';
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Package, label: 'Insumos', path: '/insumos' },
-  { icon: History, label: 'Estoque', path: '/estoque' },
   { icon: ChefHat, label: 'Receitas', path: '/receitas' },
   { icon: Wallet, label: 'Custos Fixos', path: '/custos-fixos' },
   { icon: TrendingUp, label: 'Depreciação', path: '/depreciacao' },

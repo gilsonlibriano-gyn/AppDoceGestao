@@ -61,6 +61,7 @@ export function Precificacao() {
             tipoBotijao: 'P13',
             valorBotijao: 115,
             taxaImpostos: 5,
+            lucroPretendidoPercentual: 30,
             uid: user.id
           });
         }

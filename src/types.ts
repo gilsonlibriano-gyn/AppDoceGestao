@@ -11,8 +11,6 @@ export interface MateriaPrima {
   pesoEmbalagem: number;
   valorEmbalagem: number;
   preco: number;
-  estoqueAtual: number;
-  estoqueMinimo: number;
   fatorCorrecao: number;
   fornecedor: string;
   tipo: 'INGREDIENTE' | 'EMBALAGEM';
@@ -82,18 +80,6 @@ export interface Depreciacao {
   updatedAt?: any;
 }
 
-export interface TransacaoEstoque {
-  id?: string;
-  materiaPrimaId: string;
-  tipo: 'ENTRADA' | 'SAIDA';
-  quantidade: number;
-  valor?: number;
-  data: string;
-  observacao?: string;
-  uid: string;
-  createdAt?: any;
-}
-
 export interface BemDepreciavel extends Depreciacao {}
 
 export interface EquipamentoConfig {
@@ -119,6 +105,7 @@ export interface Configuracoes {
   
   // Outros
   taxaImpostos: number;
+  lucroPretendidoPercentual: number;
   uid: string;
 }
 

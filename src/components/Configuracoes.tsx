@@ -46,6 +46,7 @@ export function Configuracoes() {
     tipoBotijao: 'P13',
     valorBotijao: 115,
     taxaImpostos: 5,
+    lucroPretendidoPercentual: 30,
     uid: ''
   });
 
@@ -334,6 +335,16 @@ export function Configuracoes() {
                   value={settings.taxaImpostos} 
                   onChange={(e) => setSettings({ ...settings, taxaImpostos: Number(e.target.value) })}
                 />
+              </div>
+
+              <div>
+                <Label>Meta de Lucro Padrão (%)</Label>
+                <Input 
+                  type="number" 
+                  value={settings.lucroPretendidoPercentual} 
+                  onChange={(e) => setSettings({ ...settings, lucroPretendidoPercentual: Number(e.target.value) })}
+                />
+                <p className="text-[10px] text-neutral-400 mt-1 italic">Usado como base para novos produtos e no dashboard.</p>
               </div>
 
               <Button className="w-full py-4 text-lg mt-4" onClick={handleSave} disabled={isSaving}>
