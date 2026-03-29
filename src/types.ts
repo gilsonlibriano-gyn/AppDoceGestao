@@ -16,6 +16,9 @@ export interface MateriaPrima {
   fatorCorrecao: number;
   fornecedor: string;
   tipo: 'INGREDIENTE' | 'EMBALAGEM';
+  pesoUnitario?: number;
+  quantidadeItens?: number;
+  valorUnitario?: number;
   uid: string;
   createdAt?: any;
   updatedAt?: any;

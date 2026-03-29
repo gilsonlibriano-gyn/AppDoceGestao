@@ -308,16 +308,21 @@ export function Receitas() {
       };
 
       if (editingReceita) {
-        await dbService.update('receitas', editingReceita.id!, data);
+        console.log('Receitas: Atualizando receita:', editingReceita.id);
+        const result = await dbService.update('receitas', editingReceita.id!, data);
+        console.log('Receitas: Receita atualizada com sucesso:', result);
       } else {
-        await dbService.create('receitas', {
+        console.log('Receitas: Criando nova receita...');
+        const result = await dbService.create('receitas', {
           ...data,
           createdAt: new Date().toISOString()
         });
+        console.log('Receitas: Nova receita criada com sucesso:', result);
       }
       setIsModalOpen(false);
+      console.log('Receitas: Salvamento concluído.');
     } catch (error) {
-      console.error('Error saving recipe:', error);
+      console.error('Receitas: Erro ao salvar receita:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -450,8 +455,8 @@ export function Receitas() {
       {/* Modal Nova/Editar Receita */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <Card className="w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+          <Card className="w-full max-w-2xl h-[90vh] md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-neutral-100 flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold text-neutral-900">
                 {editingReceita ? 'Editar Receita' : 'Nova Receita'}
               </h2>
@@ -460,7 +465,7 @@ export function Receitas() {
               </Button>
             </div>
             
-            <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6">
+            <form id="receita-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="sm:col-span-2 space-y-2">
                   <Label>Nome da Receita</Label>
@@ -802,7 +807,7 @@ export function Receitas() {
               </div>
             </form>
 
-            <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex items-center justify-between">
+            <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex items-center justify-between shrink-0">
               <div className="text-sm">
                 <span className="text-neutral-500">Custo Total da Receita: </span>
                 <span className="text-lg font-bold text-neutral-900">
@@ -819,8 +824,8 @@ export function Receitas() {
                 </span>
               </div>
               <div className="flex gap-3">
-                <Button variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                <Button onClick={handleSubmit} disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" form="receita-form" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Salvar Receita
                 </Button>

@@ -277,8 +277,8 @@ export function Depreciacao() {
       {/* Modal Novo/Editar Bem */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
-          <Card className="w-full max-w-md overflow-hidden">
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+          <Card className="w-full max-w-md h-[90vh] md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-neutral-100 flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold text-neutral-900">
                 {editingBem ? 'Editar Bem' : 'Novo Bem'}
               </h2>
@@ -287,7 +287,7 @@ export function Depreciacao() {
               </Button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form id="depreciacao-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-4 min-h-0">
               <div className="space-y-2">
                 <Label>Nome do Equipamento/Bem</Label>
                 <Input 
@@ -351,11 +351,11 @@ export function Depreciacao() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 shrink-0 p-6 border-t border-neutral-100 bg-neutral-50">
                 <Button type="button" variant="outline" className="flex-1" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1" disabled={isSubmitting}>
+                <Button type="submit" form="depreciacao-form" className="flex-1" disabled={isSubmitting}>
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   Salvar
                 </Button>

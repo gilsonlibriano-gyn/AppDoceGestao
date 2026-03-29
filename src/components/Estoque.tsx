@@ -123,6 +123,7 @@ export function Estoque() {
     if (!user || isSubmitting) return;
 
     setIsSubmitting(true);
+    console.log('Estoque: Iniciando registro de movimentação...', { editingTransaction, formData });
     try {
       const insumo = insumos.find(i => i.id === formData.materiaPrimaId);
       if (!insumo) throw new Error('Insumo não encontrado');
@@ -131,6 +132,7 @@ export function Estoque() {
       let newPrice = insumo.preco || 0;
 
       if (editingTransaction) {
+        console.log('Estoque: Revertendo transação anterior para ajuste:', editingTransaction.id);
         const oldInsumo = insumos.find(i => i.id === editingTransaction.materiaPrimaId);
         if (oldInsumo) {
           if (editingTransaction.tipo === 'ENTRADA') {
@@ -154,25 +156,31 @@ export function Estoque() {
       }
 
       if (editingTransaction) {
+        console.log('Estoque: Atualizando transação...');
         await dbService.update('transacoes_estoque', editingTransaction.id!, {
-          ...formData
+          ...formData,
+          uid: user.id
         });
       } else {
+        console.log('Estoque: Criando nova transação...');
         await dbService.create('transacoes_estoque', {
           ...formData,
           uid: user.id
         });
       }
 
+      console.log('Estoque: Atualizando estoque do insumo:', insumo.id, { newStock, newPrice });
       await dbService.update('materias_primas', insumo.id!, {
         estoqueAtual: newStock,
-        preco: newPrice
+        preco: newPrice,
+        uid: user.id
       });
 
       setIsModalOpen(false);
       setEditingTransaction(null);
+      console.log('Estoque: Movimentação registrada com sucesso.');
     } catch (error) {
-      console.error('Erro ao salvar movimentação:', error);
+      console.error('Estoque: Erro ao salvar movimentação:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -448,8 +456,8 @@ export function Estoque() {
       {/* Modal Registrar Movimentação */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <Card className="w-full max-w-lg overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-neutral-100 flex items-center justify-between">
+          <Card className="w-full max-w-lg h-[90vh] md:h-auto md:max-h-[90vh] overflow-hidden flex flex-col animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-neutral-100 flex items-center justify-between shrink-0">
               <h2 className="text-xl font-bold text-neutral-900 flex items-center gap-2">
                 <div className="w-8 h-8 bg-indigo-100 rounded-lg flex items-center justify-center text-indigo-600">
                   {formData.tipo === 'ENTRADA' ? <TrendingUp className="w-5 h-5" /> : <TrendingDown className="w-5 h-5" />}
@@ -461,7 +469,7 @@ export function Estoque() {
               </button>
             </div>
             
-            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <form id="estoque-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
               <div className="space-y-4">
                 <div className="flex items-center gap-2 pb-2 border-b border-neutral-100">
                   <Package className="w-4 h-4 text-orange-500" />
@@ -585,11 +593,11 @@ export function Estoque() {
                 />
               </div>
 
-              <div className="flex gap-3 pt-4">
+              <div className="flex gap-3 pt-4 shrink-0 p-6 border-t border-neutral-100 bg-neutral-50">
                 <Button type="button" variant="outline" className="flex-1 h-12" onClick={() => setIsModalOpen(false)}>
                   Cancelar
                 </Button>
-                <Button type="submit" className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700" disabled={isSubmitting}>
+                <Button type="submit" form="estoque-form" className="flex-1 h-12 bg-indigo-600 hover:bg-indigo-700" disabled={isSubmitting}>
                   {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                   {editingTransaction ? 'Salvar Alterações' : 'Confirmar Registro'}
                 </Button>

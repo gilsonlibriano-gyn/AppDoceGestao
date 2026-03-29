@@ -1,10 +1,18 @@
 import { supabase } from '../supabase';
 
 const GUEST_UID = '00000000-0000-0000-0000-000000000000';
+const ADMIN_UID = 'admin-0000-0000-0000-000000000000';
 
 export class DBService {
   private isGuest(uid: string) {
-    return uid === GUEST_UID;
+    return uid === GUEST_UID || uid === ADMIN_UID;
+  }
+
+  private generateId() {
+    if (typeof crypto !== 'undefined' && crypto.randomUUID) {
+      return crypto.randomUUID();
+    }
+    return Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
   }
 
   private getLocalData<T>(table: string): T[] {
@@ -15,6 +23,9 @@ export class DBService {
   private setLocalData<T>(table: string, data: T[]) {
     localStorage.setItem(`deliciarte_${table}`, JSON.stringify(data));
     // Trigger storage event for local subscription
+    // Custom event to ensure same-window listeners are triggered
+    window.dispatchEvent(new CustomEvent('deliciarte_storage', { detail: { table } }));
+    // Also dispatch native storage event for cross-tab (though it won't trigger in same window)
     window.dispatchEvent(new Event('storage'));
   }
 
@@ -33,11 +44,10 @@ export class DBService {
   }
 
   async get<T>(table: string, id: string): Promise<T | null> {
-    const uid = GUEST_UID; // Simplified for get, usually we'd pass uid
-    if (this.isGuest(uid)) {
-      const data = this.getLocalData<any>(table);
-      return data.find((item: any) => item.id === id) || null;
-    }
+    // Try local storage first if it's a guest/admin context
+    const localData = this.getLocalData<any>(table);
+    const localItem = localData.find((item: any) => item.id === id);
+    if (localItem) return localItem as T;
 
     const { data, error } = await supabase
       .from(table)
@@ -66,15 +76,17 @@ export class DBService {
   }
 
   async create<T>(table: string, data: any): Promise<T> {
+    console.log(`dbService.create: table=${table}, uid=${data.uid}`, data);
     if (this.isGuest(data.uid)) {
       const localData = this.getLocalData<any>(table);
       const newItem = { 
         ...data, 
-        id: crypto.randomUUID(), 
+        id: this.generateId(), 
         created_at: new Date().toISOString() 
       };
       localData.push(newItem);
       this.setLocalData(table, localData);
+      console.log(`dbService.create: Item salvo localmente`, newItem);
       return newItem as T;
     }
 
@@ -84,19 +96,28 @@ export class DBService {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error(`dbService.create: Erro no Supabase`, error);
+      throw error;
+    }
+    console.log(`dbService.create: Item salvo no Supabase`, created);
     return created as T;
   }
 
   async update<T>(table: string, id: string, data: any): Promise<T> {
+    console.log(`dbService.update: table=${table}, id=${id}`, data);
     if (this.isGuest(data.uid)) {
       const localData = this.getLocalData<any>(table);
       const index = localData.findIndex((item: any) => item.id === id);
-      if (index === -1) throw new Error('Item not found');
+      if (index === -1) {
+        console.warn(`dbService.update: Item não encontrado localmente`, id);
+        throw new Error('Item not found');
+      }
       
       const updatedItem = { ...localData[index], ...data };
       localData[index] = updatedItem;
       this.setLocalData(table, localData);
+      console.log(`dbService.update: Item atualizado localmente`, updatedItem);
       return updatedItem as T;
     }
 
@@ -107,7 +128,11 @@ export class DBService {
       .select()
       .single();
     
-    if (error) throw error;
+    if (error) {
+      console.error(`dbService.update: Erro no Supabase`, error);
+      throw error;
+    }
+    console.log(`dbService.update: Item atualizado no Supabase`, updated);
     return updated as T;
   }
 
@@ -137,13 +162,23 @@ export class DBService {
       callback(this.getLocalData<T>(table));
 
       // Listen for local changes
-      const handleStorage = () => {
-        callback(this.getLocalData<T>(table));
+      const handleStorage = (e: Event) => {
+        // If it's our custom event, check the table
+        if (e instanceof CustomEvent && e.type === 'deliciarte_storage') {
+          if (e.detail.table === table) {
+            callback(this.getLocalData<T>(table));
+          }
+        } else {
+          // Native storage event (from other tabs)
+          callback(this.getLocalData<T>(table));
+        }
       };
       window.addEventListener('storage', handleStorage);
+      window.addEventListener('deliciarte_storage', handleStorage);
       
       return () => {
         window.removeEventListener('storage', handleStorage);
+        window.removeEventListener('deliciarte_storage', handleStorage);
       };
     }
 

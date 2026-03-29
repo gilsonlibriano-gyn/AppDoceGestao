@@ -59,6 +59,10 @@ export function Dashboard() {
       }
     };
     fetchConfig();
+  }, [user]);
+
+  React.useEffect(() => {
+    if (!user) return;
 
     const state = {
       insumos: [] as MateriaPrima[],
