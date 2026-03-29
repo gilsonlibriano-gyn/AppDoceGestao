@@ -19,30 +19,44 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [user, setUser] = useState<User | null>({
-    id: '00000000-0000-0000-0000-000000000000',
-    email: 'convidado@deliciarte.com',
-    user_metadata: { full_name: 'Convidado' },
+  const [user, setUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const ADMIN_USER: User = {
+    id: 'admin-0000-0000-0000-000000000000',
+    email: 'admin@deliciarte.com',
+    user_metadata: { full_name: 'Administrador' },
     app_metadata: {},
     aud: 'authenticated',
     created_at: new Date().toISOString(),
-  } as User);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  } as User;
 
   useEffect(() => {
+    // Check local storage for mock admin session
+    const localUser = localStorage.getItem('deliciarte_logged_user');
+    if (localUser === 'admin') {
+      setUser(ADMIN_USER);
+      setLoading(false);
+      return;
+    }
+
     // Check active sessions and sets the user if available
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
         setUser(session.user);
       }
+      setLoading(false);
     });
 
     // Listen for changes on auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
+      } else if (!localStorage.getItem('deliciarte_logged_user')) {
+        setUser(null);
       }
+      setLoading(false);
     });
 
     return () => subscription.unsubscribe();
@@ -50,6 +64,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     setError(null);
+    
+    // Check for admin login
+    if (email === 'admin' && password === '1234') {
+      setUser(ADMIN_USER);
+      localStorage.setItem('deliciarte_logged_user', 'admin');
+      return;
+    }
+
     try {
       const { error } = await supabase.auth.signInWithPassword({
         email,
@@ -85,7 +107,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
+      localStorage.removeItem('deliciarte_logged_user');
       await supabase.auth.signOut();
+      setUser(null);
     } catch (error) {
       console.error("Logout error:", error);
     }

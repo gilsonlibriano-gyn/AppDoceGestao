@@ -75,13 +75,8 @@ export function Configuracoes() {
     async function fetchSettings() {
       if (!user) return;
       try {
-        const { data, error } = await supabase
-          .from('configuracoes')
-          .select('*')
-          .eq('uid', user.id)
-          .single();
+        const data = await dbService.getSingleByUid<ConfiguracoesType>('configuracoes', user.id);
 
-        if (error && error.code !== 'PGRST116') throw error;
         if (data) {
           setSettings({
             ...settings,
@@ -102,11 +97,7 @@ export function Configuracoes() {
     if (!user) return;
     setIsSaving(true);
     try {
-      const { data: existing } = await supabase
-        .from('configuracoes')
-        .select('id')
-        .eq('uid', user.id)
-        .single();
+      const existing = await dbService.getSingleByUid<any>('configuracoes', user.id);
 
       const data = {
         ...settings,

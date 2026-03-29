@@ -50,15 +50,9 @@ export function Dashboard() {
 
     const fetchConfig = async () => {
       try {
-        const { data, error } = await supabase
-          .from('configuracoes')
-          .select('*')
-          .eq('uid', user.id)
-          .single();
-
-        if (error && error.code !== 'PGRST116') throw error;
+        const data = await dbService.getSingleByUid<Configuracoes>('configuracoes', user.id);
         if (data) {
-          setConfig(data as Configuracoes);
+          setConfig(data);
         }
       } catch (error) {
         console.error('Error fetching config:', error);

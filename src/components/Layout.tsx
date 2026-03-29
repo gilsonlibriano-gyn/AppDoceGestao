@@ -38,9 +38,21 @@ const navItems = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const { user, loading, logout } = useAuth();
+  const [isSignUp, setIsSignUp] = React.useState(false);
+  const [email, setEmail] = React.useState('');
+  const [password, setPassword] = React.useState('');
+  const { user, loading, error, signIn, signUp, logout } = useAuth();
 
-  if (loading || !user) {
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isSignUp) {
+      await signUp(email, password);
+    } else {
+      await signIn(email, password);
+    }
+  };
+
+  if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
@@ -48,6 +60,76 @@ export function Layout({ children }: { children: React.ReactNode }) {
             <ChefHat className="text-white w-7 h-7" />
           </div>
           <p className="text-neutral-500 font-medium animate-pulse">Carregando Deliciarte...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-neutral-100 p-8 animate-in fade-in zoom-in-95 duration-300">
+          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
+            <ChefHat className="text-white w-9 h-9" />
+          </div>
+          <h1 className="text-2xl font-bold text-neutral-900 mb-2 text-center">
+            {isSignUp ? 'Criar sua conta' : 'Bem-vindo ao Deliciarte'}
+          </h1>
+          <p className="text-neutral-500 mb-8 text-center">
+            {isSignUp 
+              ? 'Comece a gerenciar seus custos hoje mesmo.' 
+              : 'Gestão de custos e precificação para confeitaria.'}
+          </p>
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 animate-in fade-in slide-in-from-top-2">
+              {error}
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Usuário ou E-mail</label>
+              <input
+                type="text"
+                required
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full px-4 py-2 rounded-xl border border-neutral-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                placeholder="admin"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-neutral-700 mb-1">Senha</label>
+              <input
+                type="password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full px-4 py-2 rounded-xl border border-neutral-200 focus:ring-2 focus:ring-orange-500 focus:border-transparent outline-none transition-all"
+                placeholder="••••"
+              />
+            </div>
+            <Button type="submit" className="w-full py-4 text-lg">
+              {isSignUp ? <UserIcon className="w-5 h-5 mr-2" /> : <LogIn className="w-5 h-5 mr-2" />}
+              {isSignUp ? 'Cadastrar' : 'Entrar'}
+            </Button>
+          </form>
+
+          <div className="mt-6 text-center">
+            <button
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-orange-600 hover:text-orange-700 font-medium"
+            >
+              {isSignUp ? 'Já tem uma conta? Entre aqui' : 'Não tem uma conta? Cadastre-se'}
+            </button>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-neutral-100 text-center">
+            <p className="text-xs text-neutral-400">
+              Dica: Use <b>admin</b> e senha <b>1234</b> para acesso rápido.
+            </p>
+          </div>
         </div>
       </div>
     );
@@ -111,6 +193,29 @@ export function Layout({ children }: { children: React.ReactNode }) {
               );
             })}
           </nav>
+
+          <div className="p-4 border-t space-y-4">
+            <div className="flex items-center gap-3 px-2">
+              <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center overflow-hidden border border-neutral-200">
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name || ''} className="w-full h-full object-cover" />
+                ) : (
+                  <UserIcon className="w-5 h-5 text-neutral-400" />
+                )}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-sm font-bold text-neutral-900 truncate">{user.user_metadata?.full_name || 'Usuário'}</span>
+                <span className="text-xs text-neutral-500 truncate">{user.email}</span>
+              </div>
+            </div>
+            <button 
+              onClick={logout}
+              className="w-full flex items-center gap-3 px-4 py-3 text-neutral-600 hover:bg-red-50 hover:text-red-600 rounded-xl transition-all duration-200"
+            >
+              <LogOut className="w-5 h-5" />
+              <span className="font-medium">Sair</span>
+            </button>
+          </div>
         </div>
       </aside>
 
