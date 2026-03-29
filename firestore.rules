@@ -1,0 +1,141 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: materias_primas
+    // Fields: nome (string), categoria (string), unidadeMedida (string), 
+    //         pesoEmbalagem (number), valorEmbalagem (number), preco (number), 
+    //         estoqueAtual (number), estoqueMinimo (number), fatorCorrecao (number), 
+    //         fornecedor (string), uid (string)
+    //
+    // Collection: receitas
+    // Fields: nome (string), tempoPreparo (number), rendimento (number), 
+    //         ingredientes (array of {materiaPrimaId, quantidade}), uid (string)
+    //
+    // Collection: custos_fixos
+    // Fields: nome (string), valor (number), uid (string)
+    //
+    // Collection: bens_depreciaveis
+    // Fields: nome (string), valorCompra (number), vidaUtilMeses (number), uid (string)
+    //
+    // Collection: configuracoes
+    // Fields: horasProducaoMensal (number), valorHoraMOD (number), 
+    //         custoMensalGas (number), custoMensalEletricidade (number), uid (string)
+    //
+    // ===============================================================
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.uid;
+    }
+
+    function isAdmin() {
+      return isAuthenticated() && 
+        (exists(/databases/$(database)/documents/users/$(request.auth.uid)) && 
+         get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin' ||
+         (request.auth.token.email == "gilson.libriano@gmail.com" && request.auth.token.email_verified == true));
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) || request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    // ===============================================================
+    // Domain Validators
+    // ===============================================================
+    
+    function isValidMateriaPrima(data) {
+      return data.nome is string && data.nome.size() > 0 && data.nome.size() < 100 &&
+             data.unidadeMedida is string &&
+             data.preco is number && data.preco >= 0 &&
+             data.uid == request.auth.uid;
+    }
+
+    function isValidReceita(data) {
+      return data.nome is string && data.nome.size() > 0 && data.nome.size() < 100 &&
+             data.tempoPreparo is number && data.tempoPreparo >= 0 &&
+             data.rendimento is number && data.rendimento > 0 &&
+             data.ingredientes is list &&
+             data.uid == request.auth.uid;
+    }
+
+    // ===============================================================
+    // Collection Rules
+    // ===============================================================
+
+    match /materias_primas/{id} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidMateriaPrima(request.resource.data) && uidUnchanged();
+      allow update: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin()) && isValidMateriaPrima(request.resource.data) && uidNotModified();
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /transacoes_estoque/{id} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && uidUnchanged();
+      allow update: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin()) && uidNotModified();
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /receitas/{id} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && isValidReceita(request.resource.data) && uidUnchanged();
+      allow update: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin()) && isValidReceita(request.resource.data) && uidNotModified();
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /custos_fixos/{id} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && uidUnchanged();
+      allow update: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin()) && uidNotModified();
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /despesas_variaveis/{id} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && uidUnchanged();
+      allow update: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin()) && uidNotModified();
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /bens_depreciaveis/{id} {
+      allow read: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && uidUnchanged();
+      allow update: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin()) && uidNotModified();
+      allow delete: if isAuthenticated() && (resource.data.uid == request.auth.uid || isAdmin());
+    }
+
+    match /configuracoes/{uid} {
+      allow read: if isAuthenticated() && (uid == request.auth.uid || isAdmin());
+      allow create, update: if isAuthenticated() && (uid == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && (uid == request.auth.uid || isAdmin());
+    }
+    
+    match /users/{userId} {
+      allow read: if isAuthenticated() && (userId == request.auth.uid || isAdmin());
+      allow create: if isAuthenticated() && userId == request.auth.uid;
+      allow update: if isAuthenticated() && ((userId == request.auth.uid && request.resource.data.role == resource.data.role) || isAdmin());
+    }
+  }
+}

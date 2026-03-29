@@ -1,0 +1,117 @@
+{
+  "entities": {
+    "MateriaPrima": {
+      "title": "Matéria-Prima",
+      "description": "Insumos básicos para produção",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "categoria": { "type": "string" },
+        "unidadeMedida": { "type": "string" },
+        "pesoEmbalagem": { "type": "number" },
+        "valorEmbalagem": { "type": "number" },
+        "preco": { "type": "number" },
+        "estoqueAtual": { "type": "number" },
+        "estoqueMinimo": { "type": "number" },
+        "fatorCorrecao": { "type": "number" },
+        "fornecedor": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["nome", "unidadeMedida", "preco", "uid"]
+    },
+    "TransacaoEstoque": {
+      "title": "Transação de Estoque",
+      "description": "Movimentações de entrada e saída",
+      "type": "object",
+      "properties": {
+        "materiaPrimaId": { "type": "string" },
+        "tipo": { "type": "string", "enum": ["COMPRA", "SAIDA_VENDA"] },
+        "quantidade": { "type": "number" },
+        "data": { "type": "string", "format": "date" },
+        "uid": { "type": "string" }
+      },
+      "required": ["materiaPrimaId", "tipo", "quantidade", "data", "uid"]
+    },
+    "Receita": {
+      "title": "Receita",
+      "description": "Ficha técnica do produto",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "ingredientes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "materiaPrimaId": { "type": "string" },
+              "quantidade": { "type": "number" }
+            }
+          }
+        },
+        "tempoPreparo": { "type": "number" },
+        "rendimento": { "type": "number" },
+        "uid": { "type": "string" }
+      },
+      "required": ["nome", "tempoPreparo", "rendimento", "uid"]
+    },
+    "CustoFixo": {
+      "title": "Custo Fixo",
+      "description": "Despesas mensais fixas",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "valor": { "type": "number" },
+        "uid": { "type": "string" }
+      },
+      "required": ["nome", "valor", "uid"]
+    },
+    "DespesaVariavel": {
+      "title": "Despesa Variável",
+      "description": "Impostos e comissões sobre a venda",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "percentual": { "type": "number" },
+        "uid": { "type": "string" }
+      },
+      "required": ["nome", "percentual", "uid"]
+    },
+    "BemDepreciavel": {
+      "title": "Bem Depreciável",
+      "description": "Equipamentos e máquinas",
+      "type": "object",
+      "properties": {
+        "nome": { "type": "string" },
+        "valorCompra": { "type": "number" },
+        "vidaUtilMeses": { "type": "integer" },
+        "dataCompra": { "type": "string", "format": "date" },
+        "taxaAnual": { "type": "number" },
+        "categoria": { "type": "string" },
+        "uid": { "type": "string" }
+      },
+      "required": ["nome", "valorCompra", "vidaUtilMeses", "uid"]
+    },
+    "Configuracoes": {
+      "title": "Configurações",
+      "description": "Parâmetros globais de rateio",
+      "type": "object",
+      "properties": {
+        "horasProducaoMensal": { "type": "number" },
+        "valorHoraMOD": { "type": "number" },
+        "custoMensalGas": { "type": "number" },
+        "custoMensalEletricidade": { "type": "number" },
+        "uid": { "type": "string" }
+      },
+      "required": ["uid"]
+    }
+  },
+  "firestore": {
+    "/materias_primas/{id}": { "schema": "MateriaPrima", "description": "Insumos do usuário" },
+    "/transacoes_estoque/{id}": { "schema": "TransacaoEstoque", "description": "Histórico de estoque" },
+    "/receitas/{id}": { "schema": "Receita", "description": "Fichas técnicas" },
+    "/custos_fixos/{id}": { "schema": "CustoFixo", "description": "Despesas fixas" },
+    "/despesas_variaveis/{id}": { "schema": "DespesaVariavel", "description": "Taxas sobre venda" },
+    "/bens_depreciaveis/{id}": { "schema": "BemDepreciavel", "description": "Ativos fixos" },
+    "/configuracoes/{uid}": { "schema": "Configuracoes", "description": "Configurações globais por usuário" }
+  }
+}
