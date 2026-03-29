@@ -30,21 +30,8 @@ import { ConfirmModal } from './ui/ConfirmModal';
 import { formatNumber, cn, formatCurrency } from '../lib/utils';
 import { MateriaPrima, TransacaoEstoque } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
-  deleteDoc, 
-  doc,
-  updateDoc,
-  serverTimestamp,
-  orderBy,
-  limit
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 
 export function Estoque() {
   const { user } = useAuth();
@@ -67,32 +54,41 @@ export function Estoque() {
     observacao: ''
   });
 
-  React.useEffect(() => {
+  const fetchData = React.useCallback(async () => {
     if (!user) return;
-
-    const qInsumos = query(collection(db, 'materias_primas'), where('uid', '==', user.uid));
-    const qTransacoes = query(
-      collection(db, 'transacoes_estoque'), 
-      where('uid', '==', user.uid),
-      orderBy('data', 'desc'),
-      orderBy('createdAt', 'desc'),
-      limit(50)
-    );
-
-    const unsubInsumos = onSnapshot(qInsumos, (snapshot) => {
-      setInsumos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as MateriaPrima[]);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'materias_primas'));
-
-    const unsubTransacoes = onSnapshot(qTransacoes, (snapshot) => {
-      setTransacoes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as TransacaoEstoque[]);
+    try {
+      const [insumosData, transacoesData] = await Promise.all([
+        dbService.list<MateriaPrima>('materias_primas', user.id),
+        supabase
+          .from('transacoes_estoque')
+          .select('*')
+          .eq('uid', user.id)
+          .order('data', { ascending: false })
+          .limit(50)
+      ]);
+      
+      setInsumos(insumosData);
+      setTransacoes(transacoesData.data as TransacaoEstoque[] || []);
+    } catch (error) {
+      console.error('Erro ao carregar dados de estoque:', error);
+    } finally {
       setLoading(false);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'transacoes_estoque'));
-
-    return () => {
-      unsubInsumos();
-      unsubTransacoes();
-    };
+    }
   }, [user]);
+
+  React.useEffect(() => {
+    fetchData();
+
+    if (user) {
+      const unsubInsumos = dbService.subscribe('materias_primas', user.id, () => fetchData());
+      const unsubTransacoes = dbService.subscribe('transacoes_estoque', user.id, () => fetchData());
+      
+      return () => {
+        unsubInsumos();
+        unsubTransacoes();
+      };
+    }
+  }, [user, fetchData]);
 
   const handleOpenModal = (transaction?: TransacaoEstoque) => {
     if (transaction) {
@@ -134,21 +130,17 @@ export function Estoque() {
       let newStock = insumo.estoqueAtual || 0;
       let newPrice = insumo.preco || 0;
 
-      // If editing, first revert the old transaction's impact
       if (editingTransaction) {
         const oldInsumo = insumos.find(i => i.id === editingTransaction.materiaPrimaId);
         if (oldInsumo) {
-          // Revert quantity
           if (editingTransaction.tipo === 'ENTRADA') {
             newStock -= editingTransaction.quantidade;
           } else {
             newStock += editingTransaction.quantidade;
           }
-          // Note: Reverting price perfectly is complex, we'll keep the current price as base
         }
       }
 
-      // Apply new transaction's impact
       if (formData.tipo === 'ENTRADA') {
         const currentTotalValue = newStock * newPrice;
         const newPurchaseValue = formData.valor || (formData.quantidade * newPrice);
@@ -161,31 +153,26 @@ export function Estoque() {
         newStock -= formData.quantidade;
       }
 
-      // 1. Save/Update transaction
       if (editingTransaction) {
-        await updateDoc(doc(db, 'transacoes_estoque', editingTransaction.id!), {
-          ...formData,
-          updatedAt: serverTimestamp()
+        await dbService.update('transacoes_estoque', editingTransaction.id!, {
+          ...formData
         });
       } else {
-        await addDoc(collection(db, 'transacoes_estoque'), {
+        await dbService.create('transacoes_estoque', {
           ...formData,
-          uid: user.uid,
-          createdAt: serverTimestamp()
+          uid: user.id
         });
       }
 
-      // 2. Update stock level and unit price
-      await updateDoc(doc(db, 'materias_primas', insumo.id!), {
+      await dbService.update('materias_primas', insumo.id!, {
         estoqueAtual: newStock,
-        preco: newPrice,
-        updatedAt: serverTimestamp()
+        preco: newPrice
       });
 
       setIsModalOpen(false);
       setEditingTransaction(null);
     } catch (error) {
-      handleFirestoreError(error, editingTransaction ? OperationType.UPDATE : OperationType.WRITE, 'transacoes_estoque');
+      console.error('Erro ao salvar movimentação:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -210,16 +197,15 @@ export function Estoque() {
             newStock += transaction.quantidade;
           }
           
-          await updateDoc(doc(db, 'materias_primas', insumo.id!), {
-            estoqueAtual: newStock,
-            updatedAt: serverTimestamp()
+          await dbService.update('materias_primas', insumo.id!, {
+            estoqueAtual: newStock
           });
         }
       }
 
-      await deleteDoc(doc(db, 'transacoes_estoque', deletingId));
+      await dbService.delete('transacoes_estoque', deletingId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'transacoes_estoque');
+      console.error('Erro ao excluir transação:', error);
     } finally {
       setDeletingId(null);
       setIsConfirmOpen(false);

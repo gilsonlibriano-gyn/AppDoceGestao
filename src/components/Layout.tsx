@@ -38,7 +38,7 @@ const navItems = [
 export function Layout({ children }: { children: React.ReactNode }) {
   const location = useLocation();
   const [isSidebarOpen, setIsSidebarOpen] = React.useState(false);
-  const { user, loading, login, logout } = useAuth();
+  const { user, loading, error, login, logout } = useAuth();
 
   if (loading) {
     return (
@@ -62,6 +62,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
           </div>
           <h1 className="text-2xl font-bold text-neutral-900 mb-2">Bem-vindo ao Deliciarte</h1>
           <p className="text-neutral-500 mb-8">Sincronize seus custos e receitas em todos os seus dispositivos.</p>
+          
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 animate-in fade-in slide-in-from-top-2">
+              {error}
+            </div>
+          )}
+
           <Button onClick={login} className="w-full py-4 text-lg">
             <LogIn className="w-5 h-5 mr-2" />
             Entrar com Google
@@ -136,14 +143,14 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="p-4 border-t space-y-4">
             <div className="flex items-center gap-3 px-2">
               <div className="w-10 h-10 rounded-full bg-neutral-100 flex items-center justify-center overflow-hidden border border-neutral-200">
-                {user.photoURL ? (
-                  <img src={user.photoURL} alt={user.displayName || ''} className="w-full h-full object-cover" />
+                {user.user_metadata?.avatar_url ? (
+                  <img src={user.user_metadata.avatar_url} alt={user.user_metadata.full_name || ''} className="w-full h-full object-cover" />
                 ) : (
                   <UserIcon className="w-5 h-5 text-neutral-400" />
                 )}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-sm font-bold text-neutral-900 truncate">{user.displayName}</span>
+                <span className="text-sm font-bold text-neutral-900 truncate">{user.user_metadata?.full_name || 'Usuário'}</span>
                 <span className="text-xs text-neutral-500 truncate">{user.email}</span>
               </div>
             </div>

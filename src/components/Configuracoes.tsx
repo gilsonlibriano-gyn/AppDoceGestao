@@ -20,9 +20,8 @@ import {
 import { Button, Input, Label, Card } from './ui/Common';
 import { formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 import { Configuracoes as ConfiguracoesType } from '../types';
 import { CostService } from '../services/costService';
 
@@ -76,18 +75,22 @@ export function Configuracoes() {
     async function fetchSettings() {
       if (!user) return;
       try {
-        const docRef = doc(db, 'configuracoes', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          const data = docSnap.data() as any;
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('*')
+          .eq('uid', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        if (data) {
           setSettings({
             ...settings,
             ...data,
-            uid: user.uid
+            uid: user.id
           });
         }
       } catch (error) {
-        handleFirestoreError(error, OperationType.GET, 'configuracoes');
+        console.error('Error fetching settings:', error);
       } finally {
         setLoading(false);
       }
@@ -99,15 +102,30 @@ export function Configuracoes() {
     if (!user) return;
     setIsSaving(true);
     try {
-      await setDoc(doc(db, 'configuracoes', user.uid), {
+      const { data: existing } = await supabase
+        .from('configuracoes')
+        .select('id')
+        .eq('uid', user.id)
+        .single();
+
+      const data = {
         ...settings,
-        uid: user.uid,
-        updatedAt: serverTimestamp()
-      });
+        uid: user.id,
+        updatedAt: new Date().toISOString()
+      };
+
+      if (existing) {
+        await dbService.update('configuracoes', existing.id, data);
+      } else {
+        await dbService.create('configuracoes', {
+          ...data,
+          createdAt: new Date().toISOString()
+        });
+      }
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 3000);
     } catch (error) {
-      handleFirestoreError(error, OperationType.WRITE, 'configuracoes');
+      console.error('Error saving settings:', error);
     } finally {
       setIsSaving(false);
     }

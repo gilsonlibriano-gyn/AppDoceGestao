@@ -14,7 +14,6 @@ import {
   Loader2,
   AlertCircle,
   Tag,
-  Layers,
   Scale,
   DollarSign,
   Calculator,
@@ -30,19 +29,8 @@ import { formatCurrency, cn } from '../lib/utils';
 import { MateriaPrima } from '../types';
 import { CostService } from '../services/costService';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 
 export function Insumos() {
   const { user } = useAuth();
@@ -83,28 +71,28 @@ export function Insumos() {
     }
   }, [formData.pesoEmbalagem, formData.valorEmbalagem, formData.fatorCorrecao]);
 
-  React.useEffect(() => {
+  const fetchInsumos = React.useCallback(async () => {
     if (!user) return;
-
-    const q = query(
-      collection(db, 'materias_primas'),
-      where('uid', '==', user.uid)
-    );
-
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      const data = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as MateriaPrima[];
+    try {
+      const data = await dbService.list<MateriaPrima>('materias_primas', user.id);
       setInsumos(data);
+    } catch (error) {
+      console.error('Erro ao carregar insumos:', error);
+    } finally {
       setLoading(false);
-    }, (error) => {
-      handleFirestoreError(error, OperationType.LIST, 'materias_primas');
-      setLoading(false);
-    });
-
-    return unsubscribe;
+    }
   }, [user]);
+
+  React.useEffect(() => {
+    fetchInsumos();
+
+    if (user) {
+      const unsubInsumos = dbService.subscribe('materias_primas', user.id, () => {
+        fetchInsumos();
+      });
+      return () => { unsubInsumos(); };
+    }
+  }, [user, fetchInsumos]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -124,22 +112,18 @@ export function Insumos() {
         fatorCorrecao: parseFloat(formData.fatorCorrecao) || 1,
         fornecedor: formData.fornecedor,
         tipo: formData.tipo,
-        uid: user.uid,
-        updatedAt: serverTimestamp()
+        uid: user.id
       };
 
       if (editingInsumo) {
-        // Não atualizamos o estoque atual aqui para evitar sobrescrever alterações feitas no módulo de estoque
-        await updateDoc(doc(db, 'materias_primas', editingInsumo.id!), data);
+        await dbService.update('materias_primas', editingInsumo.id!, data);
       } else {
-        // Verifica se já existe um insumo com o mesmo nome e tipo para este usuário
         const existing = insumos.find(i => 
           i.nome.toLowerCase().trim() === formData.nome.toLowerCase().trim() && 
           (i.tipo || 'INGREDIENTE') === formData.tipo
         );
 
         if (existing) {
-          // Se já existe, atualizamos o registro existente (não duplicamos)
           const currentStock = existing.estoqueAtual || 0;
           const currentPrice = existing.preco || 0;
           const newQuantity = estoqueAtualNum;
@@ -148,7 +132,6 @@ export function Insumos() {
           let updatedStock = currentStock;
           let updatedPrice = currentPrice;
 
-          // Se houver nova quantidade, calcula o novo Custo Médio Ponderado (CMP)
           if (newQuantity > 0) {
             const currentTotalValue = currentStock * currentPrice;
             const newTotalValue = newQuantity * newUnitPrice;
@@ -156,53 +139,39 @@ export function Insumos() {
             updatedPrice = (currentTotalValue + newTotalValue) / updatedStock;
           }
 
-          await updateDoc(doc(db, 'materias_primas', existing.id), {
+          await dbService.update('materias_primas', existing.id!, {
             ...data,
             estoqueAtual: updatedStock,
             preco: updatedPrice
           });
 
-          // Registra a transação de entrada se houver quantidade
           if (newQuantity > 0) {
-            try {
-              await addDoc(collection(db, 'transacoes_estoque'), {
-                materiaPrimaId: existing.id,
-                tipo: 'ENTRADA',
-                quantidade: newQuantity,
-                valor: newQuantity * newUnitPrice,
-                data: new Date().toISOString().split('T')[0],
-                observacao: 'Atualização via cadastro (item existente)',
-                uid: user.uid,
-                createdAt: serverTimestamp()
-              });
-            } catch (txError) {
-              console.error('Erro ao criar transação de atualização:', txError);
-            }
+            await dbService.create('transacoes_estoque', {
+              materiaPrimaId: existing.id,
+              tipo: 'ENTRADA',
+              quantidade: newQuantity,
+              valor: newQuantity * newUnitPrice,
+              data: new Date().toISOString().split('T')[0],
+              observacao: 'Atualização via cadastro (item existente)',
+              uid: user.id
+            });
           }
         } else {
-          // Na criação de um novo item
-          const docRef = await addDoc(collection(db, 'materias_primas'), {
+          const created = await dbService.create<MateriaPrima>('materias_primas', {
             ...data,
-            estoqueAtual: estoqueAtualNum,
-            createdAt: serverTimestamp()
+            estoqueAtual: estoqueAtualNum
           });
 
-          // Se houver estoque inicial, registra uma transação de entrada
           if (estoqueAtualNum > 0) {
-            try {
-              await addDoc(collection(db, 'transacoes_estoque'), {
-                materiaPrimaId: docRef.id,
-                tipo: 'ENTRADA',
-                quantidade: estoqueAtualNum,
-                valor: estoqueAtualNum * data.preco,
-                data: new Date().toISOString().split('T')[0],
-                observacao: 'Saldo inicial no cadastro',
-                uid: user.uid,
-                createdAt: serverTimestamp()
-              });
-            } catch (txError) {
-              console.error('Erro ao criar transação inicial:', txError);
-            }
+            await dbService.create('transacoes_estoque', {
+              materiaPrimaId: created.id,
+              tipo: 'ENTRADA',
+              quantidade: estoqueAtualNum,
+              valor: estoqueAtualNum * data.preco,
+              data: new Date().toISOString().split('T')[0],
+              observacao: 'Saldo inicial no cadastro',
+              uid: user.id
+            });
           }
         }
       }
@@ -212,7 +181,7 @@ export function Insumos() {
       setFormData({
         nome: '',
         categoria: 'Outros',
-        unidadeMedida: 'g',
+        unidadeMedida: activeTab === 'INGREDIENTE' ? 'g' : 'un',
         pesoEmbalagem: '',
         valorEmbalagem: '',
         preco: '0',
@@ -223,7 +192,7 @@ export function Insumos() {
         tipo: activeTab
       });
     } catch (error) {
-      handleFirestoreError(error, editingInsumo ? OperationType.UPDATE : OperationType.CREATE, 'materias_primas');
+      console.error('Erro ao salvar insumo:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -255,9 +224,9 @@ export function Insumos() {
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      await deleteDoc(doc(db, 'materias_primas', deletingId));
+      await dbService.delete('materias_primas', deletingId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'materias_primas');
+      console.error('Error deleting ingredient:', error);
     } finally {
       setDeletingId(null);
     }

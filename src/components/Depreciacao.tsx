@@ -19,20 +19,8 @@ import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn } from '../lib/utils';
 import { BemDepreciavel } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { dbService } from '../services/dbService';
 import { CostService } from '../services/costService';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
 
 const CATEGORIAS_DEPRECIACAO = [
   { nome: 'Máquinas e Equipamentos', taxa: 10, vidaUtil: 120 },
@@ -67,11 +55,10 @@ export function Depreciacao() {
   React.useEffect(() => {
     if (!user) return;
 
-    const q = query(collection(db, 'bens_depreciaveis'), where('uid', '==', user.uid));
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setBens(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as BemDepreciavel[]);
+    const unsubscribe = dbService.subscribe<BemDepreciavel>('bens_depreciaveis', user.id, (data) => {
+      setBens(data);
       setLoading(false);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'bens_depreciaveis'));
+    });
 
     return () => unsubscribe();
   }, [user]);
@@ -123,21 +110,21 @@ export function Depreciacao() {
     try {
       const data = {
         ...formData,
-        uid: user.uid,
-        updatedAt: serverTimestamp()
+        uid: user.id,
+        updatedAt: new Date().toISOString()
       };
 
       if (editingBem) {
-        await updateDoc(doc(db, 'bens_depreciaveis', editingBem.id!), data);
+        await dbService.update('bens_depreciaveis', editingBem.id!, data);
       } else {
-        await addDoc(collection(db, 'bens_depreciaveis'), {
+        await dbService.create('bens_depreciaveis', {
           ...data,
-          createdAt: serverTimestamp()
+          createdAt: new Date().toISOString()
         });
       }
       setIsModalOpen(false);
     } catch (error) {
-      handleFirestoreError(error, editingBem ? OperationType.UPDATE : OperationType.CREATE, 'bens_depreciaveis');
+      console.error('Error saving asset:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -151,9 +138,9 @@ export function Depreciacao() {
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      await deleteDoc(doc(db, 'bens_depreciaveis', deletingId));
+      await dbService.delete('bens_depreciaveis', deletingId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'bens_depreciaveis');
+      console.error('Error deleting asset:', error);
     } finally {
       setDeletingId(null);
     }

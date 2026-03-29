@@ -20,21 +20,8 @@ import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn } from '../lib/utils';
 import { CustoFixo } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy,
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc,
-  serverTimestamp,
-  writeBatch
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 
 // DND Kit
 import {
@@ -160,15 +147,13 @@ export function CustosFixos() {
   React.useEffect(() => {
     if (!user) return;
 
-    const q = query(
-      collection(db, 'custos_fixos'), 
-      where('uid', '==', user.uid),
-      orderBy('ordem', 'asc')
-    );
-    const unsubscribe = onSnapshot(q, (snapshot) => {
-      setCustos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as CustoFixo[]);
+    const unsubscribe = dbService.subscribe<CustoFixo>('custos_fixos', user.id, (data) => {
+      // Sort by ordem if not already sorted by subscribe (dbService uses order('createdAt'))
+      // Actually dbService.subscribe uses order('createdAt', { ascending: true })
+      // We need to sort by 'ordem'
+      setCustos(data.sort((a, b) => (a.ordem || 0) - (b.ordem || 0)));
       setLoading(false);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'custos_fixos'));
+    });
 
     return () => unsubscribe();
   }, [user]);
@@ -185,16 +170,22 @@ export function CustosFixos() {
       // Optimistic update
       setCustos(newCustos);
 
-      // Update Firestore
+      // Update Supabase
       try {
-        const batch = writeBatch(db);
-        newCustos.forEach((custo, index) => {
-          const docRef = doc(db, 'custos_fixos', custo.id!);
-          batch.update(docRef, { ordem: index });
-        });
-        await batch.commit();
+        const updates = newCustos.map((custo, index) => ({
+          id: custo.id,
+          ordem: index,
+          uid: user?.id,
+          updatedAt: new Date().toISOString()
+        }));
+
+        const { error } = await supabase
+          .from('custos_fixos')
+          .upsert(updates);
+
+        if (error) throw error;
       } catch (error) {
-        handleFirestoreError(error, OperationType.UPDATE, 'custos_fixos');
+        console.error('Error updating order:', error);
       }
     }
   };
@@ -218,22 +209,22 @@ export function CustosFixos() {
     try {
       const data = {
         ...formData,
-        uid: user.uid,
-        updatedAt: serverTimestamp()
+        uid: user.id,
+        updatedAt: new Date().toISOString()
       };
 
       if (editingCusto) {
-        await updateDoc(doc(db, 'custos_fixos', editingCusto.id!), data);
+        await dbService.update('custos_fixos', editingCusto.id!, data);
       } else {
-        await addDoc(collection(db, 'custos_fixos'), {
+        await dbService.create('custos_fixos', {
           ...data,
           ordem: custos.length,
-          createdAt: serverTimestamp()
+          createdAt: new Date().toISOString()
         });
       }
       setIsModalOpen(false);
     } catch (error) {
-      handleFirestoreError(error, editingCusto ? OperationType.UPDATE : OperationType.CREATE, 'custos_fixos');
+      console.error('Error saving fixed cost:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -247,9 +238,9 @@ export function CustosFixos() {
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      await deleteDoc(doc(db, 'custos_fixos', deletingId));
+      await dbService.delete('custos_fixos', deletingId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'custos_fixos');
+      console.error('Error deleting fixed cost:', error);
     } finally {
       setDeletingId(null);
     }

@@ -19,17 +19,8 @@ import {
 import { Button, Input, Label, Card } from './ui/Common';
 import { formatCurrency, formatPercent, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy,
-  onSnapshot,
-  doc,
-  getDoc
-} from 'firebase/firestore';
-import { db } from '../firebase';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 import { Receita, CustoFixo, Depreciacao, Configuracoes as ConfiguracoesType } from '../types';
 import { CostService } from '../services/costService';
 
@@ -51,10 +42,14 @@ export function Precificacao() {
 
     async function fetchSettings() {
       try {
-        const docRef = doc(db, 'configuracoes', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setConfig(docSnap.data() as ConfiguracoesType);
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('*')
+          .eq('uid', user.id)
+          .single();
+
+        if (data) {
+          setConfig(data as ConfiguracoesType);
         } else {
           // Default config if not exists
           setConfig({
@@ -66,7 +61,7 @@ export function Precificacao() {
             tipoBotijao: 'P13',
             valorBotijao: 115,
             taxaImpostos: 5,
-            uid: user.uid
+            uid: user.id
           });
         }
       } catch (error) {
@@ -76,30 +71,21 @@ export function Precificacao() {
 
     fetchSettings();
 
-    const qReceitas = query(collection(db, 'receitas'), where('uid', '==', user.uid));
-    const qCustos = query(
-      collection(db, 'custos_fixos'), 
-      where('uid', '==', user.uid),
-      orderBy('ordem', 'asc')
-    );
-    const qDepr = query(collection(db, 'bens_depreciaveis'), where('uid', '==', user.uid));
-
-    const unsubReceitas = onSnapshot(qReceitas, (snapshot) => {
-      const data = snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Receita[];
+    const unsubReceitas = dbService.subscribe<Receita>('receitas', user.id, (data) => {
       setReceitas(data);
       if (data.length > 0 && !selectedReceitaId) {
         setSelectedReceitaId(data[0].id!);
       }
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'receitas'));
+    });
 
-    const unsubCustos = onSnapshot(qCustos, (snapshot) => {
-      setCustosFixos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as CustoFixo[]);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'custos_fixos'));
+    const unsubCustos = dbService.subscribe<CustoFixo>('custos_fixos', user.id, (data) => {
+      setCustosFixos(data.sort((a, b) => (a.ordem || 0) - (b.ordem || 0)));
+    });
 
-    const unsubDepr = onSnapshot(qDepr, (snapshot) => {
-      setDepreciacoes(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Depreciacao[]);
+    const unsubDepr = dbService.subscribe<Depreciacao>('bens_depreciaveis', user.id, (data) => {
+      setDepreciacoes(data);
       setLoading(false);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'bens_depreciaveis'));
+    });
 
     return () => {
       unsubReceitas();
@@ -121,9 +107,8 @@ export function Precificacao() {
   const [insumos, setInsumos] = React.useState<any[]>([]);
   React.useEffect(() => {
     if (!user) return;
-    const qInsumos = query(collection(db, 'materias_primas'), where('uid', '==', user.uid));
-    const unsubInsumos = onSnapshot(qInsumos, (snapshot) => {
-      setInsumos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })));
+    const unsubInsumos = dbService.subscribe<any>('materias_primas', user.id, (data) => {
+      setInsumos(data);
     });
     return () => unsubInsumos();
   }, [user]);

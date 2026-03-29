@@ -26,12 +26,10 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
-import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { db } from '../firebase';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 import { MateriaPrima, Receita, CustoFixo, BemDepreciavel, Configuracoes } from '../types';
 import { CostService } from '../services/costService';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { doc, getDoc } from 'firebase/firestore';
 
 export function Dashboard() {
   const { user } = useAuth();
@@ -52,10 +50,15 @@ export function Dashboard() {
 
     const fetchConfig = async () => {
       try {
-        const docRef = doc(db, 'configuracoes', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setConfig(docSnap.data() as Configuracoes);
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('*')
+          .eq('uid', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        if (data) {
+          setConfig(data as Configuracoes);
         }
       } catch (error) {
         console.error('Error fetching config:', error);
@@ -141,34 +144,25 @@ export function Dashboard() {
       setLoading(false);
     };
 
-    const qInsumos = query(collection(db, 'materias_primas'), where('uid', '==', user.uid));
-    const qReceitas = query(collection(db, 'receitas'), where('uid', '==', user.uid));
-    const qCustos = query(
-      collection(db, 'custos_fixos'), 
-      where('uid', '==', user.uid),
-      orderBy('ordem', 'asc')
-    );
-    const qBens = query(collection(db, 'bens_depreciaveis'), where('uid', '==', user.uid));
-
-    const unsubInsumos = onSnapshot(qInsumos, (snap) => {
-      state.insumos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as MateriaPrima[];
+    const unsubInsumos = dbService.subscribe<MateriaPrima>('materias_primas', user.id, (data) => {
+      state.insumos = data;
       updateDashboard();
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'materias_primas'));
+    });
 
-    const unsubReceitas = onSnapshot(qReceitas, (snap) => {
-      state.receitas = snap.docs.map(d => ({ id: d.id, ...d.data() })) as Receita[];
+    const unsubReceitas = dbService.subscribe<Receita>('receitas', user.id, (data) => {
+      state.receitas = data;
       updateDashboard();
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'receitas'));
+    });
 
-    const unsubCustos = onSnapshot(qCustos, (snap) => {
-      state.custos = snap.docs.map(d => ({ id: d.id, ...d.data() })) as CustoFixo[];
+    const unsubCustos = dbService.subscribe<CustoFixo>('custos_fixos', user.id, (data) => {
+      state.custos = data;
       updateDashboard();
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'custos_fixos'));
+    });
 
-    const unsubBens = onSnapshot(qBens, (snap) => {
-      state.bens = snap.docs.map(d => ({ id: d.id, ...d.data() })) as BemDepreciavel[];
+    const unsubBens = dbService.subscribe<BemDepreciavel>('bens_depreciaveis', user.id, (data) => {
+      state.bens = data;
       updateDashboard();
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'bens_depreciaveis'));
+    });
 
     return () => {
       unsubInsumos();
@@ -176,7 +170,7 @@ export function Dashboard() {
       unsubCustos();
       unsubBens();
     };
-  }, [user]);
+  }, [user, config]);
 
   const statCards = [
     { 
@@ -229,7 +223,7 @@ export function Dashboard() {
   return (
     <div className="space-y-8">
       <div className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold text-neutral-900">Olá, {user?.displayName?.split(' ')[0]}</h1>
+        <h1 className="text-2xl font-bold text-neutral-900">Olá, {user?.user_metadata?.full_name?.split(' ')[0] || user?.email?.split('@')[0]}</h1>
         <p className="text-neutral-500">Aqui está o resumo do seu negócio hoje.</p>
       </div>
 

@@ -20,24 +20,11 @@ import {
 import { Button, Input, Card, Label } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn } from '../lib/utils';
-import { Receita, MateriaPrima, IngredienteReceita } from '../types';
+import { Receita, MateriaPrima, IngredienteReceita, Configuracoes } from '../types';
 import { useAuth } from '../contexts/AuthContext';
-import { 
-  collection, 
-  query, 
-  where, 
-  onSnapshot, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  doc,
-  serverTimestamp 
-} from 'firebase/firestore';
-import { db } from '../firebase';
+import { dbService } from '../services/dbService';
+import { supabase } from '../supabase';
 import { CostService } from '../services/costService';
-import { handleFirestoreError, OperationType } from '../lib/firestore-errors';
-import { Configuracoes } from '../types';
-import { getDoc } from 'firebase/firestore';
 
 export function Receitas() {
   const { user } = useAuth();
@@ -69,15 +56,19 @@ export function Receitas() {
   React.useEffect(() => {
     if (!user) return;
 
-    const qReceitas = query(collection(db, 'receitas'), where('uid', '==', user.uid));
-    const qInsumos = query(collection(db, 'materias_primas'), where('uid', '==', user.uid));
+    setLoading(true);
 
     async function fetchSettings() {
       try {
-        const docRef = doc(db, 'configuracoes', user.uid);
-        const docSnap = await getDoc(docRef);
-        if (docSnap.exists()) {
-          setConfig(docSnap.data() as Configuracoes);
+        const { data, error } = await supabase
+          .from('configuracoes')
+          .select('*')
+          .eq('uid', user.id)
+          .single();
+
+        if (error && error.code !== 'PGRST116') throw error;
+        if (data) {
+          setConfig(data as Configuracoes);
         }
       } catch (error) {
         console.error('Error fetching settings:', error);
@@ -85,17 +76,14 @@ export function Receitas() {
     }
     fetchSettings();
 
-    const unsubReceitas = onSnapshot(qReceitas, (snapshot) => {
-      setReceitas(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as Receita[]);
-      setLoading(false);
-    }, (err) => {
-      handleFirestoreError(err, OperationType.LIST, 'receitas');
+    const unsubReceitas = dbService.subscribe<Receita>('receitas', user.id, (data) => {
+      setReceitas(data);
       setLoading(false);
     });
 
-    const unsubInsumos = onSnapshot(qInsumos, (snapshot) => {
-      setInsumos(snapshot.docs.map(d => ({ id: d.id, ...d.data() })) as MateriaPrima[]);
-    }, (err) => handleFirestoreError(err, OperationType.LIST, 'materias_primas'));
+    const unsubInsumos = dbService.subscribe<MateriaPrima>('materias_primas', user.id, (data) => {
+      setInsumos(data);
+    });
 
     return () => {
       unsubReceitas();
@@ -307,7 +295,7 @@ export function Receitas() {
         usoEnergia: formData.usoEnergia.map(u => ({ ...u, tempoMinutos: Number(u.tempoMinutos) || 0 })),
         usoGas: formData.usoGas.map(u => ({ ...u, tempoMinutos: Number(u.tempoMinutos) || 0 })),
         id: 'temp', 
-        uid: user.uid,
+        uid: user.id,
         custoTotal: 0
       }, insumos, config) : { total: 0 };
 
@@ -318,21 +306,21 @@ export function Receitas() {
         usoEnergia: formData.usoEnergia.map(u => ({ ...u, tempoMinutos: Number(u.tempoMinutos) || 0 })),
         usoGas: formData.usoGas.map(u => ({ ...u, tempoMinutos: Number(u.tempoMinutos) || 0 })),
         custoTotal: totalCostObj.total,
-        uid: user.uid,
-        updatedAt: serverTimestamp()
+        uid: user.id,
+        updatedAt: new Date().toISOString()
       };
 
       if (editingReceita) {
-        await updateDoc(doc(db, 'receitas', editingReceita.id!), data);
+        await dbService.update('receitas', editingReceita.id!, data);
       } else {
-        await addDoc(collection(db, 'receitas'), {
+        await dbService.create('receitas', {
           ...data,
-          createdAt: serverTimestamp()
+          createdAt: new Date().toISOString()
         });
       }
       setIsModalOpen(false);
     } catch (error) {
-      handleFirestoreError(error, editingReceita ? OperationType.UPDATE : OperationType.CREATE, 'receitas');
+      console.error('Error saving recipe:', error);
     } finally {
       setIsSubmitting(false);
     }
@@ -346,9 +334,9 @@ export function Receitas() {
   const confirmDelete = async () => {
     if (!deletingId) return;
     try {
-      await deleteDoc(doc(db, 'receitas', deletingId));
+      await dbService.delete('receitas', deletingId);
     } catch (error) {
-      handleFirestoreError(error, OperationType.DELETE, 'receitas');
+      console.error('Error deleting recipe:', error);
     } finally {
       setDeletingId(null);
     }
@@ -828,7 +816,7 @@ export function Receitas() {
                     usoEnergia: formData.usoEnergia.map(u => ({ ...u, tempoMinutos: Number(u.tempoMinutos) || 0 })),
                     usoGas: formData.usoGas.map(u => ({ ...u, tempoMinutos: Number(u.tempoMinutos) || 0 })),
                     id: 'temp', 
-                    uid: user?.uid || '',
+                    uid: user?.id || '',
                     custoTotal: 0
                   }, insumos, config).total) : 'R$ 0,00'}
                 </span>
