@@ -74,75 +74,82 @@ export function Dashboard() {
     };
 
     const updateDashboard = () => {
-      const totalCF = state.custos.reduce((s, c) => s + c.valor, 0);
-      const totalDepr = CostService.calculateTotalDepreciationMonthly(state.bens);
-      const totalEstoque = state.insumos.reduce((s, i) => s + ((i.estoqueAtual || 0) * (i.preco || 0)), 0);
-      
-      let totalMargem = 0;
-      const chartData = state.receitas.slice(0, 6).map(r => {
-        const cost = r.rendimento > 0 ? r.custoTotal / r.rendimento : 0;
+      try {
+        const totalCF = state.custos.reduce((s, c) => s + c.valor, 0);
+        const totalDepr = CostService.calculateTotalDepreciationMonthly(state.bens);
+        const totalEstoque = state.insumos.reduce((s, i) => s + ((i.estoqueAtual || 0) * (i.preco || 0)), 0);
         
-        // Se temos config, usamos o cálculo real do service
-        let price = 0;
-        let margin = 0;
-        if (config) {
-          const pricing = CostService.calculateRecipeCosts(
-            r,
-            state.insumos,
-            config,
-            state.custos,
-            state.bens,
-            r.lucroPretendidoPercentual || 30,
-            r.outrasDespesas || 0,
-            0 // producaoMensal padrão para o dashboard
-          );
-          price = pricing.precoVendaSugerido;
-          margin = pricing.margemContribuicaoPercentual * 100;
-        } else {
-          const markup = 1 - 0.3 - 0.05;
-          price = cost / markup;
-          margin = 30;
-        }
+        let totalMargem = 0;
+        const chartData = state.receitas.slice(0, 6).map(r => {
+          const cost = r.rendimento > 0 ? r.custoTotal / r.rendimento : 0;
+          
+          // Se temos config, usamos o cálculo real do service
+          let price = 0;
+          let margin = 0;
+          if (config) {
+            const pricing = CostService.calculateRecipeCosts(
+              r,
+              state.insumos,
+              config,
+              state.custos,
+              state.bens,
+              r.lucroPretendidoPercentual || 30,
+              r.outrasDespesas || 0,
+              0 // producaoMensal padrão para o dashboard
+            );
+            price = pricing.precoVendaSugerido;
+            margin = pricing.margemContribuicaoPercentual * 100;
+          } else {
+            const markup = 1 - 0.3 - 0.05;
+            price = cost / markup;
+            margin = 30;
+          }
 
-        totalMargem += margin;
+          totalMargem += margin;
 
-        return {
-          name: r.nome.length > 12 ? r.nome.substring(0, 10) + '...' : r.nome,
-          fullName: r.nome,
-          custo: Number(cost.toFixed(2)),
-          preco: Number(price.toFixed(2)),
-          margem: Number(margin.toFixed(1))
-        };
-      });
+          return {
+            name: r.nome.length > 12 ? r.nome.substring(0, 10) + '...' : r.nome,
+            fullName: r.nome,
+            custo: Number(cost.toFixed(2)),
+            preco: Number(price.toFixed(2)),
+            margem: Number(margin.toFixed(1))
+          };
+        });
 
-      const criticalItems = state.insumos
-        .filter(i => i.estoqueAtual <= i.estoqueMinimo)
-        .sort((a, b) => (a.estoqueAtual / (a.estoqueMinimo || 1)) - (b.estoqueAtual / (b.estoqueMinimo || 1)))
-        .slice(0, 4)
-        .map(i => ({
-          id: i.id,
-          name: i.nome,
-          stock: `${i.estoqueAtual}${i.unidadeMedida}`,
-          min: `${i.estoqueMinimo}${i.unidadeMedida}`,
-          status: i.estoqueAtual === 0 ? 'Crítico' : 'Baixo'
-        }));
+        const criticalItems = state.insumos
+          .filter(i => i.estoqueAtual <= i.estoqueMinimo)
+          .sort((a, b) => (a.estoqueAtual / (a.estoqueMinimo || 1)) - (b.estoqueAtual / (b.estoqueMinimo || 1)))
+          .slice(0, 4)
+          .map(i => ({
+            id: i.id,
+            name: i.nome,
+            stock: `${i.estoqueAtual}${i.unidadeMedida}`,
+            min: `${i.estoqueMinimo}${i.unidadeMedida}`,
+            status: i.estoqueAtual === 0 ? 'Crítico' : 'Baixo'
+          }));
 
-      setStats({
-        insumosCount: state.insumos.length,
-        receitasCount: state.receitas.length,
-        custoFixoTotal: totalCF + totalDepr,
-        valorEstoqueTotal: totalEstoque,
-        margemMedia: state.receitas.length > 0 ? totalMargem / state.receitas.length : 0,
-        criticalItems
-      });
+        setStats({
+          insumosCount: state.insumos.length,
+          receitasCount: state.receitas.length,
+          custoFixoTotal: totalCF + totalDepr,
+          valorEstoqueTotal: totalEstoque,
+          margemMedia: state.receitas.length > 0 ? totalMargem / state.receitas.length : 0,
+          criticalItems
+        });
 
-      setChartData(chartData.length > 0 ? chartData : [
-        { name: 'Exemplo 1', custo: 10, preco: 30, margem: 30 },
-        { name: 'Exemplo 2', custo: 15, preco: 45, margem: 30 }
-      ]);
-      
-      setLoading(false);
+        setChartData(chartData.length > 0 ? chartData : [
+          { name: 'Exemplo 1', custo: 10, preco: 30, margem: 30 },
+          { name: 'Exemplo 2', custo: 15, preco: 45, margem: 30 }
+        ]);
+      } catch (err) {
+        console.error("Error updating dashboard:", err);
+      } finally {
+        setLoading(false);
+      }
     };
+
+    // Force end loading after 2 seconds if stuck
+    const timeout = setTimeout(() => setLoading(false), 2000);
 
     const unsubInsumos = dbService.subscribe<MateriaPrima>('materias_primas', user.id, (data) => {
       state.insumos = data;
@@ -165,6 +172,7 @@ export function Dashboard() {
     });
 
     return () => {
+      clearTimeout(timeout);
       unsubInsumos();
       unsubReceitas();
       unsubCustos();

@@ -76,6 +76,8 @@ export function Receitas() {
     }
     fetchSettings();
 
+    const timeout = setTimeout(() => setLoading(false), 2000);
+
     const unsubReceitas = dbService.subscribe<Receita>('receitas', user.id, (data) => {
       setReceitas(data);
       setLoading(false);
@@ -86,6 +88,7 @@ export function Receitas() {
     });
 
     return () => {
+      clearTimeout(timeout);
       unsubReceitas();
       unsubInsumos();
     };

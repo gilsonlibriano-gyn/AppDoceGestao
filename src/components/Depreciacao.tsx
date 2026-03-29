@@ -55,12 +55,17 @@ export function Depreciacao() {
   React.useEffect(() => {
     if (!user) return;
 
+    const timeout = setTimeout(() => setLoading(false), 2000);
+
     const unsubscribe = dbService.subscribe<BemDepreciavel>('bens_depreciaveis', user.id, (data) => {
       setBens(data);
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [user]);
 
   const handleOpenModal = (bem?: BemDepreciavel) => {

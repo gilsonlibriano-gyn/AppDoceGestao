@@ -147,6 +147,8 @@ export function CustosFixos() {
   React.useEffect(() => {
     if (!user) return;
 
+    const timeout = setTimeout(() => setLoading(false), 2000);
+
     const unsubscribe = dbService.subscribe<CustoFixo>('custos_fixos', user.id, (data) => {
       // Sort by ordem if not already sorted by subscribe (dbService uses order('createdAt'))
       // Actually dbService.subscribe uses order('createdAt', { ascending: true })
@@ -155,7 +157,10 @@ export function CustosFixos() {
       setLoading(false);
     });
 
-    return () => unsubscribe();
+    return () => {
+      clearTimeout(timeout);
+      unsubscribe();
+    };
   }, [user]);
 
   const handleDragEnd = async (event: DragEndEvent) => {
