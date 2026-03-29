@@ -11,7 +11,8 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   error: string | null;
-  login: () => Promise<void>;
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
 }
 
@@ -38,19 +39,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => subscription.unsubscribe();
   }, []);
 
-  const login = async () => {
+  const signIn = async (email: string, password: string) => {
     setError(null);
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: window.location.origin,
-        },
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
       if (error) throw error;
     } catch (err: any) {
       console.error("Login error:", err);
-      setError("Erro ao entrar com Google. Verifique as configurações do Supabase.");
+      setError(err.message || "Erro ao entrar. Verifique seu e-mail e senha.");
+    }
+  };
+
+  const signUp = async (email: string, password: string) => {
+    setError(null);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email,
+        password,
+      });
+      if (error) throw error;
+      setError("Verifique seu e-mail para confirmar o cadastro.");
+    } catch (err: any) {
+      console.error("Signup error:", err);
+      setError(err.message || "Erro ao cadastrar. Tente novamente.");
     }
   };
 
@@ -63,7 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, login, logout }}>
+    <AuthContext.Provider value={{ user, loading, error, signIn, signUp, logout }}>
       {children}
     </AuthContext.Provider>
   );
