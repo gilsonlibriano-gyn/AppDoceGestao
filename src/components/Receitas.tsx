@@ -17,7 +17,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { Button, Input, Card, Label } from './ui/Common';
+import { Button, Input, Card, Label, CardHeader, CardContent, Badge } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn } from '../lib/utils';
 import { Receita, MateriaPrima, IngredienteReceita, Configuracoes } from '../types';
@@ -407,37 +407,38 @@ export function Receitas() {
             return (
               <Card 
                 key={receita.id} 
-                className="group cursor-pointer hover:border-orange-200 transition-all duration-300 overflow-hidden"
+                className="group cursor-pointer hover:border-orange-200 transition-all duration-300 overflow-hidden flex flex-col"
                 onClick={() => handleOpenModal(receita)}
               >
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
+                <CardHeader className="pb-2">
+                  <div className="flex items-start justify-between">
                     <div className="w-12 h-12 bg-orange-50 rounded-2xl flex items-center justify-center text-orange-500 group-hover:bg-orange-500 group-hover:text-white transition-colors duration-300">
                       <ChefHat className="w-6 h-6" />
                     </div>
                     <div className="text-right">
-                      <p className="text-xs text-neutral-400 font-bold uppercase tracking-wider">Custo Unitário</p>
+                      <p className="text-[10px] text-neutral-400 font-bold uppercase tracking-wider">Custo Unitário</p>
                       <p className="text-lg font-bold text-neutral-900">{formatCurrency(unitCost)}</p>
                     </div>
                   </div>
-                  
-                  <h3 className="text-lg font-bold text-neutral-900 mb-4">{receita.nome}</h3>
+                </CardHeader>
+                
+                <CardContent className="flex-1">
+                  <h3 className="text-lg font-bold text-neutral-900 mb-4 line-clamp-1">{receita.nome}</h3>
                   
                   <div className="flex items-center gap-4 text-sm text-neutral-500">
                     <div className="flex items-center gap-1.5">
-                      <Clock className="w-4 h-4" />
+                      <Clock className="w-4 h-4 text-neutral-400" />
                       <span>{receita.tempoPreparo} min</span>
                     </div>
                     <div className="flex items-center gap-1.5">
-                      <PieChart className="w-4 h-4" />
+                      <PieChart className="w-4 h-4 text-neutral-400" />
                       <span>{receita.rendimento} rend.</span>
                     </div>
                   </div>
-                </div>
+                </CardContent>
                 
                 <div 
-                  className="px-6 py-4 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between group-hover:bg-orange-50 transition-colors cursor-pointer"
-                  onClick={() => handleOpenModal(receita)}
+                  className="px-6 py-4 bg-neutral-50 border-t border-neutral-100 flex items-center justify-between group-hover:bg-orange-50 transition-colors"
                 >
                   <div className="flex items-center gap-2">
                     <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider group-hover:text-orange-600">Ver Ficha Técnica</span>

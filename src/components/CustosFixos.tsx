@@ -15,7 +15,7 @@ import {
   Loader2,
   GripVertical
 } from 'lucide-react';
-import { Button, Input, Label, Card } from './ui/Common';
+import { Button, Input, Label, Card, CardHeader, CardContent } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn } from '../lib/utils';
 import { CustoFixo } from '../types';
@@ -273,67 +273,117 @@ export function CustosFixos() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 p-6">
-            <div className="overflow-x-auto">
-              <DndContext
-                sensors={sensors}
-                collisionDetection={closestCenter}
-                onDragEnd={handleDragEnd}
-              >
-                <table className="w-full text-left border-collapse min-w-[500px]">
-                  <thead>
-                    <tr className="border-b border-neutral-100">
-                      <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Nome</th>
-                      <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Valor Mensal</th>
-                      <th className="pb-4 font-bold text-sm text-neutral-500 px-2 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-50">
-                    {custos.length === 0 ? (
-                      <tr>
-                        <td colSpan={3} className="py-10 text-center text-neutral-400 italic">
-                          Nenhum custo fixo cadastrado.
-                        </td>
-                      </tr>
-                    ) : (
-                      <SortableContext
-                        items={custos.map(c => c.id!)}
-                        strategy={verticalListSortingStrategy}
-                      >
-                        {custos.map((custo) => (
-                          <SortableRow 
-                            key={custo.id} 
-                            custo={custo} 
-                            onEdit={handleOpenModal}
-                            onDelete={handleDelete}
-                          />
-                        ))}
-                      </SortableContext>
-                    )}
-                  </tbody>
-                </table>
-              </DndContext>
+          <div className="lg:col-span-2 space-y-4">
+            {/* Mobile Card List */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {custos.length === 0 ? (
+                <Card>
+                  <CardContent className="py-10 text-center text-neutral-400 italic">
+                    Nenhum custo fixo cadastrado.
+                  </CardContent>
+                </Card>
+              ) : (
+                custos.map((custo) => (
+                  <Card key={custo.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-500">
+                            <Wallet className="w-4 h-4" />
+                          </div>
+                          <span className="font-bold text-neutral-900">{custo.nome}</span>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleOpenModal(custo)}>
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500" onClick={() => handleDelete(custo.id!)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="flex justify-between items-center pt-3 border-t border-neutral-50">
+                        <span className="text-xs text-neutral-500 uppercase font-bold tracking-wider">Valor Mensal</span>
+                        <span className="font-bold text-neutral-900">{formatCurrency(custo.valor)}</span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
-          </Card>
+
+            {/* Desktop Table */}
+            <Card className="hidden md:block">
+              <CardHeader>
+                <h3 className="font-bold text-neutral-900">Lista de Custos</h3>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    <table className="w-full text-left border-collapse min-w-[500px]">
+                      <thead>
+                        <tr className="border-b border-neutral-100">
+                          <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Nome</th>
+                          <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Valor Mensal</th>
+                          <th className="pb-4 font-bold text-sm text-neutral-500 px-2 text-right">Ações</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-50">
+                        {custos.length === 0 ? (
+                          <tr>
+                            <td colSpan={3} className="py-10 text-center text-neutral-400 italic">
+                              Nenhum custo fixo cadastrado.
+                            </td>
+                          </tr>
+                        ) : (
+                          <SortableContext
+                            items={custos.map(c => c.id!)}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {custos.map((custo) => (
+                              <SortableRow 
+                                key={custo.id} 
+                                custo={custo} 
+                                onEdit={handleOpenModal}
+                                onDelete={handleDelete}
+                              />
+                            ))}
+                          </SortableContext>
+                        )}
+                      </tbody>
+                    </table>
+                  </DndContext>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="space-y-6">
-            <Card className="p-6 bg-neutral-900 text-white border-none">
-              <div className="flex items-center gap-2 text-neutral-400 mb-2">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Total Mensal</span>
-              </div>
-              <h2 className="text-3xl font-black">{formatCurrency(total)}</h2>
-              <p className="text-xs text-neutral-400 mt-4 leading-relaxed">
-                Este valor é usado para calcular a taxa horária de rateio com base nas suas horas de produção.
-              </p>
+            <Card className="bg-neutral-900 text-white border-none">
+              <CardContent>
+                <div className="flex items-center gap-2 text-neutral-400 mb-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Total Mensal</span>
+                </div>
+                <h2 className="text-3xl font-black">{formatCurrency(total)}</h2>
+                <p className="text-xs text-neutral-400 mt-4 leading-relaxed">
+                  Este valor é usado para calcular a taxa horária de rateio com base nas suas horas de produção.
+                </p>
+              </CardContent>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <PieChart className="w-4 h-4 text-orange-500" />
-                Distribuição
-              </h3>
-              <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                  <PieChart className="w-4 h-4 text-orange-500" />
+                  Distribuição
+                </h3>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 {custos.length === 0 ? (
                   <p className="text-sm text-neutral-400 text-center py-4">Sem dados para exibir.</p>
                 ) : (
@@ -355,7 +405,7 @@ export function CustosFixos() {
                     );
                   })
                 )}
-              </div>
+              </CardContent>
             </Card>
           </div>
         </div>

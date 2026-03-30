@@ -85,3 +85,43 @@ export function Card({ className, children, ...props }: React.HTMLAttributes<HTM
     </div>
   );
 }
+
+export function CardHeader({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('p-6 border-b border-neutral-50', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function CardContent({ className, children, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return (
+    <div className={cn('p-6', className)} {...props}>
+      {children}
+    </div>
+  );
+}
+
+export function Badge({ className, variant = 'default', children, ...props }: React.HTMLAttributes<HTMLSpanElement> & { variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'outline' }) {
+  const variants = {
+    default: 'bg-neutral-100 text-neutral-600',
+    success: 'bg-emerald-50 text-emerald-600',
+    warning: 'bg-amber-50 text-amber-600',
+    danger: 'bg-red-50 text-red-600',
+    info: 'bg-blue-50 text-blue-600',
+    outline: 'border border-neutral-200 text-neutral-600',
+  };
+
+  return (
+    <span
+      className={cn(
+        'inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider',
+        variants[variant] || variants.default,
+        className
+      )}
+      {...props}
+    >
+      {children}
+    </span>
+  );
+}

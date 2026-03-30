@@ -14,7 +14,7 @@ import {
   X,
   Loader2
 } from 'lucide-react';
-import { Button, Input, Label, Card } from './ui/Common';
+import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn } from '../lib/utils';
 import { BemDepreciavel } from '../types';
@@ -174,90 +174,149 @@ export function Depreciacao() {
         </div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <Card className="lg:col-span-2 p-6">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse min-w-[600px]">
-                <thead>
-                  <tr className="border-b border-neutral-100">
-                    <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Bem</th>
-                    <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Valor Compra</th>
-                    <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Depr. Mensal</th>
-                    <th className="pb-4 font-bold text-sm text-neutral-500 px-2 text-right">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-50">
-                  {bens.length === 0 ? (
-                    <tr>
-                      <td colSpan={4} className="py-10 text-center text-neutral-400 italic">
-                        Nenhum bem cadastrado.
-                      </td>
-                    </tr>
-                  ) : (
-                    bens.map((bem) => (
-                      <tr key={bem.id} className="group hover:bg-neutral-50 transition-colors">
-                        <td className="py-4 px-2">
-                          <div className="flex items-center gap-3">
-                            <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-500">
-                              <Layers className="w-4 h-4" />
-                            </div>
-                            <div className="flex flex-col">
-                              <span className="font-medium text-neutral-900">{bem.nome}</span>
-                              <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">{bem.categoria}</span>
-                            </div>
+          <div className="lg:col-span-2 space-y-4">
+            {/* Mobile Card List */}
+            <div className="grid grid-cols-1 gap-4 md:hidden">
+              {bens.length === 0 ? (
+                <Card>
+                  <CardContent className="py-10 text-center text-neutral-400 italic">
+                    Nenhum bem cadastrado.
+                  </CardContent>
+                </Card>
+              ) : (
+                bens.map((bem) => (
+                  <Card key={bem.id}>
+                    <CardContent className="p-4">
+                      <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-500">
+                            <Layers className="w-4 h-4" />
                           </div>
-                        </td>
-                        <td className="py-4 px-2 text-neutral-600">
-                          {formatCurrency(bem.valor)}
-                        </td>
-                        <td className="py-4 px-2 text-neutral-900 font-bold">
-                          {formatCurrency(bem.valor / bem.vidaUtil)}
-                        </td>
-                        <td className="py-4 px-2 text-right">
-                          <div className="flex items-center justify-end gap-1">
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0"
-                              onClick={() => handleOpenModal(bem)}
-                            >
-                              <Edit2 className="w-4 h-4" />
-                            </Button>
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
-                              className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
-                              onClick={() => handleDelete(bem.id!)}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
+                          <div>
+                            <h3 className="font-bold text-neutral-900">{bem.nome}</h3>
+                            <Badge variant="info" className="mt-1">{bem.categoria}</Badge>
                           </div>
-                        </td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+                        </div>
+                        <div className="flex gap-1">
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => handleOpenModal(bem)}>
+                            <Edit2 className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500" onClick={() => handleDelete(bem.id!)}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4 pt-3 border-t border-neutral-50">
+                        <div>
+                          <p className="text-[10px] text-neutral-400 uppercase font-bold">Valor Compra</p>
+                          <p className="font-bold text-neutral-700">{formatCurrency(bem.valor)}</p>
+                        </div>
+                        <div>
+                          <p className="text-[10px] text-neutral-400 uppercase font-bold">Depr. Mensal</p>
+                          <p className="font-bold text-orange-600">{formatCurrency(bem.valor / bem.vidaUtil)}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))
+              )}
             </div>
-          </Card>
+
+            {/* Desktop Table */}
+            <Card className="hidden md:block">
+              <CardHeader>
+                <h3 className="font-bold text-neutral-900">Lista de Ativos</h3>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left border-collapse min-w-[600px]">
+                    <thead>
+                      <tr className="border-b border-neutral-100">
+                        <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Bem</th>
+                        <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Valor Compra</th>
+                        <th className="pb-4 font-bold text-sm text-neutral-500 px-2">Depr. Mensal</th>
+                        <th className="pb-4 font-bold text-sm text-neutral-500 px-2 text-right">Ações</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-50">
+                      {bens.length === 0 ? (
+                        <tr>
+                          <td colSpan={4} className="py-10 text-center text-neutral-400 italic">
+                            Nenhum bem cadastrado.
+                          </td>
+                        </tr>
+                      ) : (
+                        bens.map((bem) => (
+                          <tr key={bem.id} className="group hover:bg-neutral-50 transition-colors">
+                            <td className="py-4 px-2">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 bg-neutral-100 rounded-lg flex items-center justify-center text-neutral-500">
+                                  <Layers className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-medium text-neutral-900">{bem.nome}</span>
+                                  <span className="text-[10px] text-neutral-400 uppercase font-bold tracking-wider">{bem.categoria}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="py-4 px-2 text-neutral-600">
+                              {formatCurrency(bem.valor)}
+                            </td>
+                            <td className="py-4 px-2 text-neutral-900 font-bold">
+                              {formatCurrency(bem.valor / bem.vidaUtil)}
+                            </td>
+                            <td className="py-4 px-2 text-right">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0"
+                                  onClick={() => handleOpenModal(bem)}
+                                >
+                                  <Edit2 className="w-4 h-4" />
+                                </Button>
+                                <Button 
+                                  variant="ghost" 
+                                  size="sm" 
+                                  className="h-8 w-8 p-0 text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  onClick={() => handleDelete(bem.id!)}
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           <div className="space-y-6">
-            <Card className="p-6 bg-orange-500 text-white border-none">
-              <div className="flex items-center gap-2 text-orange-100 mb-2">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-xs font-bold uppercase tracking-wider">Total Depreciação Mensal</span>
-              </div>
-              <h2 className="text-3xl font-black">{formatCurrency(totalMensal)}</h2>
-              <p className="text-xs text-orange-100 mt-4 leading-relaxed">
-                Este valor é somado aos seus custos fixos para garantir que você esteja recuperando o investimento nos seus equipamentos.
-              </p>
+            <Card className="bg-orange-500 text-white border-none">
+              <CardContent>
+                <div className="flex items-center gap-2 text-orange-100 mb-2">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-xs font-bold uppercase tracking-wider">Total Depreciação Mensal</span>
+                </div>
+                <h2 className="text-3xl font-black">{formatCurrency(totalMensal)}</h2>
+                <p className="text-xs text-orange-100 mt-4 leading-relaxed">
+                  Este valor é somado aos seus custos fixos para garantir que você esteja recuperando o investimento nos seus equipamentos.
+                </p>
+              </CardContent>
             </Card>
 
-            <Card className="p-6">
-              <h3 className="font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                <Calendar className="w-4 h-4 text-orange-500" />
-                Resumo Fiscal
-              </h3>
-              <div className="space-y-4">
+            <Card>
+              <CardHeader>
+                <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                  <Calendar className="w-4 h-4 text-orange-500" />
+                  Resumo Fiscal
+                </h3>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 text-sm">
                   <span className="text-neutral-500">Total em Ativos</span>
                   <span className="font-bold text-neutral-900">{formatCurrency(totalAtivos)}</span>
@@ -268,7 +327,7 @@ export function Depreciacao() {
                     {bens.length > 0 ? (bens.reduce((s, b) => s + b.taxaAnual, 0) / bens.length).toFixed(1) : 0}%
                   </span>
                 </div>
-              </div>
+              </CardContent>
             </Card>
           </div>
         </div>

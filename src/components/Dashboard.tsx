@@ -16,7 +16,7 @@ import {
   Calculator,
   Wallet
 } from 'lucide-react';
-import { Card } from './ui/Common';
+import { Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { formatCurrency, cn } from '../lib/utils';
 import { 
   BarChart, 
@@ -92,7 +92,7 @@ export function Dashboard() {
               0 // producaoMensal padrão para o dashboard
             );
             price = pricing.precoVendaSugerido;
-            margin = pricing.margemContribuicaoPercentual;
+            margin = pricing.margemLucroPercentual;
           } else {
             const markup = 1 - 0.3 - 0.05;
             price = cost / markup;
@@ -218,35 +218,37 @@ export function Dashboard() {
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {statCards.map((stat) => (
-          <Card key={stat.label} className="p-6">
-            <div className="flex items-start justify-between">
-              <div className={cn("p-3 rounded-xl", stat.bg)}>
-                <stat.icon className={cn("w-6 h-6", stat.color)} />
+          <Card key={stat.label}>
+            <CardContent className="p-6">
+              <div className="flex items-start justify-between">
+                <div className={cn("p-3 rounded-xl", stat.bg)}>
+                  <stat.icon className={cn("w-6 h-6", stat.color)} />
+                </div>
+                <div className={cn(
+                  "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full",
+                  stat.trendUp ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
+                )}>
+                  {stat.trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
+                  {stat.trend}
+                </div>
               </div>
-              <div className={cn(
-                "flex items-center gap-1 text-xs font-medium px-2 py-1 rounded-full",
-                stat.trendUp ? "bg-emerald-50 text-emerald-600" : "bg-amber-50 text-amber-600"
-              )}>
-                {stat.trendUp ? <ArrowUpRight className="w-3 h-3" /> : <ArrowDownRight className="w-3 h-3" />}
-                {stat.trend}
+              <div className="mt-4">
+                <p className="text-sm text-neutral-500 font-medium">{stat.label}</p>
+                <p className="text-2xl font-bold text-neutral-900 mt-1">{stat.value}</p>
               </div>
-            </div>
-            <div className="mt-4">
-              <p className="text-sm text-neutral-500 font-medium">{stat.label}</p>
-              <p className="text-2xl font-bold text-neutral-900 mt-1">{stat.value}</p>
-            </div>
+            </CardContent>
           </Card>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        <Card className="lg:col-span-2 p-6">
-          <div className="flex items-center justify-between mb-8">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2">
+          <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <h3 className="font-bold text-neutral-900">Margem por Produto</h3>
               <p className="text-sm text-neutral-500">Comparativo de custo vs preço de venda</p>
             </div>
-            <div className="flex items-center gap-4 text-xs">
+            <div className="hidden sm:flex items-center gap-4 text-xs">
               <div className="flex items-center gap-1.5">
                 <div className="w-3 h-3 bg-orange-500 rounded-full" />
                 <span>Preço</span>
@@ -256,47 +258,50 @@ export function Dashboard() {
                 <span>Custo</span>
               </div>
             </div>
-          </div>
-          
-          <div className="h-[300px] w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
-                <XAxis 
-                  dataKey="name" 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#737373', fontSize: 10 }} 
-                  dy={10}
-                />
-                <YAxis 
-                  axisLine={false} 
-                  tickLine={false} 
-                  tick={{ fill: '#737373', fontSize: 10 }} 
-                />
-                <Tooltip 
-                  cursor={{ fill: '#fafafa' }}
-                  contentStyle={{ 
-                    borderRadius: '12px', 
-                    border: 'none', 
-                    boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
-                    fontSize: '12px'
-                  }}
-                  formatter={(value: any, name: string) => [
-                    name === 'margem' ? `${value}%` : formatCurrency(value),
-                    name === 'custo' ? 'Custo' : name === 'preco' ? 'Preço' : 'Margem'
-                  ]}
-                />
-                <Bar dataKey="custo" fill="#e5e5e5" radius={[4, 4, 0, 0]} barSize={24} />
-                <Bar dataKey="preco" fill="#f97316" radius={[4, 4, 0, 0]} barSize={24} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[300px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#737373', fontSize: 10 }} 
+                    dy={10}
+                  />
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#737373', fontSize: 10 }} 
+                  />
+                  <Tooltip 
+                    cursor={{ fill: '#fafafa' }}
+                    contentStyle={{ 
+                      borderRadius: '12px', 
+                      border: 'none', 
+                      boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)',
+                      fontSize: '12px'
+                    }}
+                    formatter={(value: any, name: string) => [
+                      name === 'margem' ? `${value}%` : formatCurrency(value),
+                      name === 'custo' ? 'Custo' : name === 'preco' ? 'Preço' : 'Margem'
+                    ]}
+                  />
+                  <Bar dataKey="custo" fill="#e5e5e5" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar dataKey="preco" fill="#f97316" radius={[4, 4, 0, 0]} barSize={24} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
         </Card>
 
-        <Card className="p-6">
-          <h3 className="font-bold text-neutral-900 mb-6">Resumo de Precificação</h3>
-          <div className="space-y-6">
+        <Card>
+          <CardHeader>
+            <h3 className="font-bold text-neutral-900">Resumo de Precificação</h3>
+          </CardHeader>
+          <CardContent className="space-y-6">
             <div className="p-4 bg-orange-50 rounded-2xl border border-orange-100">
               <div className="flex items-center gap-3 mb-2">
                 <Calculator className="w-5 h-5 text-orange-600" />
@@ -331,7 +336,7 @@ export function Dashboard() {
                   : "Sua margem média está abaixo da meta. Revise seus preços."}
               </p>
             </div>
-          </div>
+          </CardContent>
         </Card>
       </div>
     </div>

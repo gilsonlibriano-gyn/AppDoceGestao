@@ -123,6 +123,8 @@ export interface PricingResults {
   precoVendaSugerido: number;
   margemContribuicaoValor: number;
   margemContribuicaoPercentual: number;
+  lucroLiquidoValor: number;
+  margemLucroPercentual: number;
 }
 
 export interface BreakEvenResults {

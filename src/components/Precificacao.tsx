@@ -16,7 +16,7 @@ import {
   Loader2,
   AlertCircle
 } from 'lucide-react';
-import { Button, Input, Label, Card } from './ui/Common';
+import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { formatCurrency, formatPercent, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -89,7 +89,7 @@ export function Precificacao() {
   React.useEffect(() => {
     if (selectedReceita) {
       setProfitMargin(selectedReceita.lucroPretendidoPercentual || 30);
-      setOutrasDespesasVariaveis(selectedReceita.outrasDespesas || 0);
+      setOutrasDespesasVariaveis(0); // Inicia em zero pois as despesas da receita já estão no custo base
     }
   }, [selectedReceitaId]);
 
@@ -146,13 +146,15 @@ export function Precificacao() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-1 space-y-6">
-          <Card className="p-6">
-            <h3 className="font-bold text-neutral-900 mb-6 flex items-center gap-2">
-              <Target className="w-5 h-5 text-indigo-500" />
-              Parâmetros
-            </h3>
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Target className="w-5 h-5 text-indigo-500" />
+                Parâmetros
+              </h3>
+            </CardHeader>
             
-            <div className="space-y-6">
+            <CardContent className="space-y-6">
               <div>
                 <Label>Produto de Referência</Label>
                 <select 
@@ -229,28 +231,34 @@ export function Precificacao() {
                   <span>100%</span>
                 </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="p-6 bg-indigo-600 text-white border-none shadow-xl shadow-indigo-600/20">
-            <p className="text-indigo-100 text-sm font-medium">Preço de Venda Sugerido</p>
-            <h2 className="text-4xl font-black mt-2">{formatCurrency(pricingFull?.precoVendaSugerido || 0)}</h2>
-            <div className="mt-6 pt-6 border-t border-white/20 flex items-center justify-between">
-              <div className="flex flex-col">
-                <span className="text-indigo-100 text-xs uppercase font-bold tracking-wider">Margem de Contribuição</span>
-                <span className="text-xl font-bold">{formatPercent(pricingFull?.margemContribuicaoPercentual || 0)}</span>
+          <Card className="bg-indigo-600 text-white border-none shadow-xl shadow-indigo-600/20">
+            <CardContent className="pt-6">
+              <p className="text-indigo-100 text-sm font-medium">Preço de Venda Sugerido</p>
+              <h2 className="text-4xl font-black mt-2">{formatCurrency(pricingFull?.precoVendaSugerido || 0)}</h2>
+              
+              <div className="mt-6 grid grid-cols-2 gap-4 pt-6 border-t border-white/20">
+                <div className="flex flex-col">
+                  <span className="text-indigo-100 text-[10px] uppercase font-bold tracking-wider">Lucro Líquido</span>
+                  <span className="text-xl font-bold">{formatCurrency(pricingFull?.lucroLiquidoValor || 0)}</span>
+                </div>
+                <div className="flex flex-col">
+                  <span className="text-indigo-100 text-[10px] uppercase font-bold tracking-wider">Margem Real</span>
+                  <span className="text-xl font-bold">{formatPercent(pricingFull?.margemLucroPercentual || 0)}</span>
+                </div>
               </div>
-              <div className="w-10 h-10 bg-white/20 rounded-xl flex items-center justify-center">
-                <TrendingUp className="w-6 h-6" />
-              </div>
-            </div>
+            </CardContent>
           </Card>
         </div>
 
         <div className="lg:col-span-2 space-y-6">
-          <Card className="p-6">
-            <h3 className="font-bold text-neutral-900 mb-6">Composição do Custo (Unitário)</h3>
-            <div className="space-y-3">
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900">Composição do Custo (Unitário)</h3>
+            </CardHeader>
+            <CardContent className="space-y-3">
               <div className="flex items-center justify-between p-3 rounded-xl bg-neutral-50 border border-neutral-100">
                 <div className="flex items-center gap-3">
                   <div className="w-1.5 h-6 rounded-full bg-indigo-500" />
@@ -311,45 +319,68 @@ export function Precificacao() {
                 <span className="font-bold">Custo Total por Absorção</span>
                 <span className="text-lg font-bold">{formatCurrency(pricingFull?.custoTotalAbsorcaoUnitario || 0)}</span>
               </div>
-            </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
+                <div className="flex items-center justify-between p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-wider">Margem de Contribuição</span>
+                    <span className="text-sm font-bold text-emerald-700">{formatCurrency(pricingFull?.margemContribuicaoValor || 0)}</span>
+                  </div>
+                  <span className="text-xs font-bold text-emerald-600">{formatPercent(pricingFull?.margemContribuicaoPercentual || 0)}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 rounded-xl bg-blue-50 border border-blue-100">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] font-bold text-blue-600 uppercase tracking-wider">Lucro Líquido Real</span>
+                    <span className="text-sm font-bold text-blue-700">{formatCurrency(pricingFull?.lucroLiquidoValor || 0)}</span>
+                  </div>
+                  <span className="text-xs font-bold text-blue-600">{formatPercent(pricingFull?.margemLucroPercentual || 0)}</span>
+                </div>
+              </div>
+            </CardContent>
           </Card>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <Card className="p-6">
-              <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                <Percent className="w-4 h-4" />
-                <span className="text-sm font-medium">Mark-up Divisor</span>
-              </div>
-              <p className="text-2xl font-bold text-neutral-900">{pricingFull?.markupDivisor.toFixed(4) || '0.0000'}</p>
-              <p className="text-xs text-neutral-400 mt-1">Fator multiplicador de venda</p>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <Percent className="w-4 h-4" />
+                  <span className="text-sm font-medium">Mark-up Divisor</span>
+                </div>
+                <p className="text-2xl font-bold text-neutral-900">{pricingFull?.markupDivisor.toFixed(4) || '0.0000'}</p>
+                <p className="text-xs text-neutral-400 mt-1">Fator multiplicador de venda</p>
+              </CardContent>
             </Card>
-            <Card className="p-6">
-              <div className="flex items-center gap-2 text-neutral-500 mb-2">
-                <DollarSign className="w-4 h-4" />
-                <span className="text-sm font-medium">Custo Fixo Unitário</span>
-              </div>
-              <p className="text-2xl font-bold text-neutral-900">{formatCurrency(pricingFull?.custoFixoRateadoUnitario || 0)}</p>
-              <p className="text-xs text-neutral-400 mt-1">Baseado nos custos fixos e depreciação</p>
+            <Card>
+              <CardContent className="pt-6">
+                <div className="flex items-center gap-2 text-neutral-500 mb-2">
+                  <DollarSign className="w-4 h-4" />
+                  <span className="text-sm font-medium">Custo Fixo Unitário</span>
+                </div>
+                <p className="text-2xl font-bold text-neutral-900">{formatCurrency(pricingFull?.custoFixoRateadoUnitario || 0)}</p>
+                <p className="text-xs text-neutral-400 mt-1">Baseado nos custos fixos e depreciação</p>
+              </CardContent>
             </Card>
           </div>
 
-          <Card className="p-6 bg-blue-50 border-blue-100">
-            <div className="flex gap-3">
-              <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
-              <div className="space-y-2">
-                <h4 className="font-bold text-blue-900 text-sm">Margem vs. Markup</h4>
-                <p className="text-xs text-blue-700 leading-relaxed">
-                  O sistema utiliza a <strong>Margem sobre o Preço de Venda</strong>. 
-                  Diferente do Markup (que apenas adiciona uma porcentagem ao custo), a Margem garante que a porcentagem de lucro seja calculada sobre o valor final recebido, cobrindo impostos e custos de forma segura.
-                </p>
-                <div className="pt-2 flex flex-col gap-1">
-                  <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Cálculo Atual:</span>
-                  <code className="text-[11px] bg-white/50 p-1 rounded border border-blue-200 block">
-                    Preço = Custo Total / (1 - {profitMargin}% - {config.taxaImpostos}%)
-                  </code>
+          <Card className="bg-blue-50 border-blue-100">
+            <CardContent className="pt-6">
+              <div className="flex gap-3">
+                <Info className="w-5 h-5 text-blue-500 flex-shrink-0 mt-0.5" />
+                <div className="space-y-2">
+                  <h4 className="font-bold text-blue-900 text-sm">Margem vs. Markup</h4>
+                  <p className="text-xs text-blue-700 leading-relaxed">
+                    O sistema utiliza a <strong>Margem sobre o Preço de Venda</strong>. 
+                    Diferente do Markup (que apenas adiciona uma porcentagem ao custo), a Margem garante que a porcentagem de lucro seja calculada sobre o valor final recebido, cobrindo impostos e custos de forma segura.
+                  </p>
+                  <div className="pt-2 flex flex-col gap-1">
+                    <span className="text-[10px] font-bold text-blue-800 uppercase tracking-wider">Cálculo Atual:</span>
+                    <code className="text-[11px] bg-white/50 p-1 rounded border border-blue-200 block">
+                      Preço = Custo Total / (1 - {profitMargin}% - {config.taxaImpostos}%)
+                    </code>
+                  </div>
                 </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         </div>
       </div>

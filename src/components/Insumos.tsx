@@ -25,7 +25,7 @@ import {
   ArrowUpRight,
   ArrowDownRight
 } from 'lucide-react';
-import { Button, Input, Label, Card } from './ui/Common';
+import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
 import { formatCurrency, cn, formatNumber } from '../lib/utils';
 import { MateriaPrima } from '../types';
@@ -295,7 +295,60 @@ export function Insumos() {
         />
       </div>
 
-      <Card className="overflow-hidden border-neutral-200">
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {loading ? (
+          <div className="py-12 flex flex-col items-center gap-3 text-neutral-400">
+            <Loader2 className="w-8 h-8 animate-spin" />
+            <p className="text-sm font-medium">Carregando seus insumos...</p>
+          </div>
+        ) : filteredInsumos.length === 0 ? (
+          <Card className="py-12 text-center">
+            <div className="w-12 h-12 bg-neutral-50 rounded-xl flex items-center justify-center mx-auto mb-4 text-neutral-300">
+              <Package className="w-6 h-6" />
+            </div>
+            <p className="text-neutral-500 font-medium">Nenhum insumo encontrado.</p>
+          </Card>
+        ) : (
+          filteredInsumos.map((insumo) => {
+            const realCost = CostService.calculateUnitCostMP(insumo);
+            return (
+              <Card key={insumo.id}>
+                <CardContent className="p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <div>
+                      <h3 className="font-bold text-neutral-900">{insumo.nome}</h3>
+                      <Badge variant="info" className="mt-1">{insumo.categoria || 'Outros'}</Badge>
+                    </div>
+                    <div className="flex gap-1">
+                      <Button onClick={() => handleEdit(insumo)} variant="ghost" size="sm" className="h-8 w-8 p-0">
+                        <Edit2 className="w-4 h-4" />
+                      </Button>
+                      <Button onClick={() => handleDelete(insumo.id!)} variant="ghost" size="sm" className="h-8 w-8 p-0 text-red-500">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 pt-3 border-t border-neutral-50">
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase font-bold">Custo Unit.</p>
+                      <p className="font-bold text-indigo-600">
+                        {new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL', minimumFractionDigits: 4, maximumFractionDigits: 4 }).format(realCost)}
+                      </p>
+                      <p className="text-[10px] text-neutral-400">por {insumo.unidadeMedida}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] text-neutral-400 uppercase font-bold">Fator Correção</p>
+                      <p className="font-bold text-neutral-700">{insumo.fatorCorrecao || 1}x</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })
+        )}
+      </div>
+
+      <Card className="hidden md:block overflow-hidden border-neutral-200">
         {loading ? (
           <div className="py-12 flex flex-col items-center gap-3 text-neutral-400">
             <Loader2 className="w-8 h-8 animate-spin" />

@@ -173,15 +173,20 @@ export class CostService {
     const marginDecimal = targetProfitMargin / 100;
     const markupDivisor = 1.0 - (taxDecimal + marginDecimal);
     
-    // Preço de Venda Sugerido (Considerando outras despesas variáveis como comissões que são fixas em valor ou %?)
-    // Aqui tratamos outrasDespesasVariaveis como um valor fixo por unidade (ex: taxa de entrega)
-    const precoBase = markupDivisor > 0 ? (custoTotalAbsorcaoUnitario + outrasDespesasVariaveis) / markupDivisor : 0;
-    const precoVendaSugerido = precoBase;
+    // Preço de Venda Sugerido
+    // precoBase = (Custo Fixo + Custo Variável + Outras Desp Var Unitarias) / (1 - Impostos - Margem Lucro)
+    const precoVendaSugerido = markupDivisor > 0 
+      ? (custoTotalAbsorcaoUnitario + outrasDespesasVariaveis) / markupDivisor 
+      : 0;
 
-    // Margem de Contribuição
+    // Margem de Contribuição (Preço - Custo Variável - Impostos - Outras Desp Var)
     const impostosValor = precoVendaSugerido * taxDecimal;
     const margemContribuicaoValor = precoVendaSugerido - custoVariavelUnitario - impostosValor - outrasDespesasVariaveis;
     const margemContribuicaoPercentual = precoVendaSugerido > 0 ? (margemContribuicaoValor / precoVendaSugerido) * 100 : 0;
+
+    // Lucro Líquido Real (Preço - Custo Total Absorção - Impostos - Outras Desp Var)
+    const lucroLiquidoValor = precoVendaSugerido - custoTotalAbsorcaoUnitario - impostosValor - outrasDespesasVariaveis;
+    const margemLucroPercentual = precoVendaSugerido > 0 ? (lucroLiquidoValor / precoVendaSugerido) * 100 : 0;
 
     return {
       custoMPUnitario,
@@ -196,7 +201,9 @@ export class CostService {
       markupDivisor,
       precoVendaSugerido,
       margemContribuicaoValor,
-      margemContribuicaoPercentual
+      margemContribuicaoPercentual,
+      lucroLiquidoValor,
+      margemLucroPercentual
     };
   }
 

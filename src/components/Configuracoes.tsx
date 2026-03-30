@@ -17,7 +17,7 @@ import {
   CheckCircle2,
   Trash2
 } from 'lucide-react';
-import { Button, Input, Label, Card } from './ui/Common';
+import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { formatCurrency } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -142,13 +142,15 @@ export function Configuracoes() {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
         <div className="space-y-6">
           {/* Mão de Obra */}
-          <Card className="p-6">
-            <h3 className="font-bold text-neutral-900 mb-6 flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-500" />
-              Custo com Mão de Obra
-            </h3>
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Users className="w-5 h-5 text-blue-500" />
+                Custo com Mão de Obra
+              </h3>
+            </CardHeader>
             
-            <div className="space-y-4">
+            <CardContent className="space-y-4">
               <div>
                 <Label>Dias por mês dedicados na produção</Label>
                 <Input 
@@ -190,144 +192,172 @@ export function Configuracoes() {
                   <span className="text-lg font-bold text-blue-900">{formatCurrency(custoHoraMOD)}</span>
                 </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
 
           {/* Gás */}
-          <Card className="p-6">
-            <h3 className="font-bold text-neutral-900 mb-6 flex items-center gap-2">
-              <Flame className="w-5 h-5 text-orange-500" />
-              Custo com Gás
-            </h3>
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Flame className="w-5 h-5 text-orange-500" />
+                Custo com Gás
+              </h3>
+            </CardHeader>
             
-            <div className="grid grid-cols-2 gap-4 mb-6">
-              <div>
-                <Label>Tipo de Botijão</Label>
-                <select 
-                  className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
-                  value={settings.tipoBotijao}
-                  onChange={(e) => setSettings({ ...settings, tipoBotijao: e.target.value as any })}
-                >
-                  <option value="P13">P13 (13kg)</option>
-                  <option value="P45">P45 (45kg)</option>
-                </select>
-              </div>
-              <div>
-                <Label>Valor pago no botijão (R$)</Label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">R$</span>
-                  <Input 
-                    type="number" 
-                    value={settings.valorBotijao} 
-                    onChange={(e) => setSettings({ ...settings, valorBotijao: Number(e.target.value) })}
-                    className="pl-12" 
-                  />
+            <CardContent>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <Label>Tipo de Botijão</Label>
+                  <select 
+                    className="w-full h-10 px-3 rounded-xl border border-neutral-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-all"
+                    value={settings.tipoBotijao}
+                    onChange={(e) => setSettings({ ...settings, tipoBotijao: e.target.value as any })}
+                  >
+                    <option value="P13">P13 (13kg)</option>
+                    <option value="P45">P45 (45kg)</option>
+                  </select>
+                </div>
+                <div>
+                  <Label>Valor pago no botijão (R$)</Label>
+                  <div className="relative">
+                    <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">R$</span>
+                    <Input 
+                      type="number" 
+                      value={settings.valorBotijao} 
+                      onChange={(e) => setSettings({ ...settings, valorBotijao: Number(e.target.value) })}
+                      className="pl-12" 
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
 
-            <div className="space-y-2">
-              <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Custo estimado por hora</span>
-              <div className="grid grid-cols-3 gap-2">
-                <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-center">
-                  <span className="block text-[10px] text-neutral-500 uppercase font-bold">Baixo</span>
-                  <span className="text-sm font-bold text-neutral-900">{formatCurrency(CostService.calculateGasCost('BAIXO', 60, settings))}</span>
-                </div>
-                <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-center">
-                  <span className="block text-[10px] text-neutral-500 uppercase font-bold">Médio</span>
-                  <span className="text-sm font-bold text-neutral-900">{formatCurrency(CostService.calculateGasCost('MEDIO', 60, settings))}</span>
-                </div>
-                <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-center">
-                  <span className="block text-[10px] text-neutral-500 uppercase font-bold">Alto</span>
-                  <span className="text-sm font-bold text-neutral-900">{formatCurrency(CostService.calculateGasCost('ALTO', 60, settings))}</span>
+              <div className="space-y-2">
+                <span className="text-xs font-bold text-neutral-400 uppercase tracking-wider">Custo estimado por hora</span>
+                <div className="grid grid-cols-3 gap-2">
+                  <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-center">
+                    <span className="block text-[10px] text-neutral-500 uppercase font-bold">Baixo</span>
+                    <span className="text-sm font-bold text-neutral-900">{formatCurrency(CostService.calculateGasCost('BAIXO', 60, settings))}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-center">
+                    <span className="block text-[10px] text-neutral-500 uppercase font-bold">Médio</span>
+                    <span className="text-sm font-bold text-neutral-900">{formatCurrency(CostService.calculateGasCost('MEDIO', 60, settings))}</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-neutral-50 border border-neutral-100 text-center">
+                    <span className="block text-[10px] text-neutral-500 uppercase font-bold">Alto</span>
+                    <span className="text-sm font-bold text-neutral-900">{formatCurrency(CostService.calculateGasCost('ALTO', 60, settings))}</span>
+                  </div>
                 </div>
               </div>
-            </div>
+            </CardContent>
           </Card>
         </div>
 
         <div className="space-y-6">
           {/* Energia */}
-          <Card className="p-6">
-            <h3 className="font-bold text-neutral-900 mb-6 flex items-center gap-2">
-              <Zap className="w-5 h-5 text-yellow-500" />
-              Custo com Energia
-            </h3>
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Zap className="w-5 h-5 text-yellow-500" />
+                Custo com Energia
+              </h3>
+            </CardHeader>
             
-            <div className="mb-6">
-              <Label>Custo do kWh (R$)</Label>
-              <div className="relative">
-                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">R$</span>
-                <Input 
-                  type="number" 
-                  step="0.01"
-                  value={settings.custoKwh} 
-                  onChange={(e) => setSettings({ ...settings, custoKwh: Number(e.target.value) })}
-                  className="pl-12" 
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center gap-2">
-                <Input 
-                  placeholder="Nome do equipamento" 
-                  value={newEquip.nome}
-                  onChange={(e) => setNewEquip({ ...newEquip, nome: e.target.value })}
-                />
-                <Input 
-                  type="number" 
-                  placeholder="Potência W" 
-                  className="w-24"
-                  value={newEquip.potenciaW || ''}
-                  onChange={(e) => setNewEquip({ ...newEquip, potenciaW: Number(e.target.value) })}
-                />
-                <Button size="sm" onClick={addEquipamento}>Add</Button>
+            <CardContent>
+              <div className="mb-6">
+                <Label>Custo do kWh (R$)</Label>
+                <div className="relative">
+                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-neutral-400 font-medium">R$</span>
+                  <Input 
+                    type="number" 
+                    step="0.01"
+                    value={settings.custoKwh} 
+                    onChange={(e) => setSettings({ ...settings, custoKwh: Number(e.target.value) })}
+                    className="pl-12" 
+                  />
+                </div>
               </div>
 
-              <div className="overflow-x-auto rounded-xl border border-neutral-100">
-                <table className="w-full text-left text-sm min-w-[500px]">
-                  <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase text-[10px]">
-                    <tr>
-                      <th className="px-4 py-2">Equipamento</th>
-                      <th className="px-4 py-2">Potência W</th>
-                      <th className="px-4 py-2">Custo/h</th>
-                      <th className="px-4 py-2 text-right">Ações</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-neutral-50">
-                    {settings.equipamentos.map((e) => (
-                      <tr key={e.id} className="hover:bg-neutral-50/50 transition-colors">
-                        <td className="px-4 py-2 font-medium">{e.nome}</td>
-                        <td className="px-4 py-2 text-neutral-600">{e.potenciaW}W</td>
-                        <td className="px-4 py-2 font-bold text-neutral-900">{formatCurrency(CostService.calculateEnergyCost(e.potenciaW, 60, settings.custoKwh))}</td>
-                        <td className="px-4 py-2 text-right">
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-400 hover:text-red-500" onClick={() => removeEquipamento(e.id)}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                    {settings.equipamentos.length === 0 && (
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-end gap-2">
+                  <div className="flex-1">
+                    <Label>Equipamento</Label>
+                    <Input 
+                      placeholder="Nome do equipamento" 
+                      value={newEquip.nome}
+                      onChange={(e) => setNewEquip({ ...newEquip, nome: e.target.value })}
+                    />
+                  </div>
+                  <div className="w-full sm:w-24">
+                    <Label>Potência W</Label>
+                    <Input 
+                      type="number" 
+                      placeholder="W" 
+                      value={newEquip.potenciaW || ''}
+                      onChange={(e) => setNewEquip({ ...newEquip, potenciaW: Number(e.target.value) })}
+                    />
+                  </div>
+                  <Button size="sm" onClick={addEquipamento} className="h-11">Add</Button>
+                </div>
+
+                <div className="hidden sm:block overflow-x-auto rounded-xl border border-neutral-100">
+                  <table className="w-full text-left text-sm min-w-[500px]">
+                    <thead className="bg-neutral-50 text-neutral-500 font-bold uppercase text-[10px]">
                       <tr>
-                        <td colSpan={4} className="px-4 py-8 text-center text-neutral-400 italic text-xs">
-                          Nenhum equipamento adicionado.
-                        </td>
+                        <th className="px-4 py-2">Equipamento</th>
+                        <th className="px-4 py-2">Potência W</th>
+                        <th className="px-4 py-2">Custo/h</th>
+                        <th className="px-4 py-2 text-right">Ações</th>
                       </tr>
-                    )}
-                  </tbody>
-                </table>
+                    </thead>
+                    <tbody className="divide-y divide-neutral-50">
+                      {settings.equipamentos.map((e) => (
+                        <tr key={e.id} className="hover:bg-neutral-50/50 transition-colors">
+                          <td className="px-4 py-2 font-medium">{e.nome}</td>
+                          <td className="px-4 py-2 text-neutral-600">{e.potenciaW}W</td>
+                          <td className="px-4 py-2 font-bold text-neutral-900">{formatCurrency(CostService.calculateEnergyCost(e.potenciaW, 60, settings.custoKwh))}</td>
+                          <td className="px-4 py-2 text-right">
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-400 hover:text-red-500" onClick={() => removeEquipamento(e.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                <div className="sm:hidden space-y-3">
+                  {settings.equipamentos.map((e) => (
+                    <div key={e.id} className="p-4 bg-neutral-50 rounded-2xl border border-neutral-100 flex items-center justify-between">
+                      <div>
+                        <p className="font-bold text-neutral-900">{e.nome}</p>
+                        <p className="text-xs text-neutral-500">{e.potenciaW}W • {formatCurrency(CostService.calculateEnergyCost(e.potenciaW, 60, settings.custoKwh))}/h</p>
+                      </div>
+                      <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-neutral-400 hover:text-red-500" onClick={() => removeEquipamento(e.id)}>
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+
+                {settings.equipamentos.length === 0 && (
+                  <div className="p-8 text-center text-neutral-400 italic text-xs border-2 border-dashed border-neutral-100 rounded-2xl">
+                    Nenhum equipamento adicionado.
+                  </div>
+                )}
               </div>
-            </div>
+            </CardContent>
           </Card>
 
-          <Card className="p-6">
-            <h3 className="font-bold text-neutral-900 mb-6 flex items-center gap-2">
-              <Shield className="w-5 h-5 text-emerald-500" />
-              Impostos & Margem
-            </h3>
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Shield className="w-5 h-5 text-emerald-500" />
+                Impostos & Margem
+              </h3>
+            </CardHeader>
             
-            <div className="space-y-4">
+            <CardContent className="space-y-4">
               <div>
                 <Label>Taxa de Impostos (%)</Label>
                 <Input 
@@ -362,7 +392,7 @@ export function Configuracoes() {
                   Configurações salvas com sucesso!
                 </div>
               )}
-            </div>
+            </CardContent>
           </Card>
 
           <Button 
