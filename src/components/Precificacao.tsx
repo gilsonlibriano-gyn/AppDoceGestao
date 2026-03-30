@@ -40,37 +40,25 @@ export function Precificacao() {
   React.useEffect(() => {
     if (!user) return;
 
-    async function fetchSettings() {
-      try {
-        const { data, error } = await supabase
-          .from('configuracoes')
-          .select('*')
-          .eq('uid', user.id)
-          .single();
-
-        if (data) {
-          setConfig(data as ConfiguracoesType);
-        } else {
-          // Default config if not exists
-          setConfig({
-            diasTrabalhadosMes: 22,
-            horasTrabalhadasDia: 8,
-            valorMensalPretendido: 1800,
-            custoKwh: 0.91,
-            equipamentos: [],
-            tipoBotijao: 'P13',
-            valorBotijao: 115,
-            taxaImpostos: 5,
-            lucroPretendidoPercentual: 30,
-            uid: user.id
-          });
-        }
-      } catch (error) {
-        console.error('Error fetching settings:', error);
+    const unsubConfig = dbService.subscribe<ConfiguracoesType>('configuracoes', user.id, (data) => {
+      if (data && data.length > 0) {
+        setConfig(data[0]);
+      } else {
+        // Default config if not exists
+        setConfig({
+          diasTrabalhadosMes: 22,
+          horasTrabalhadasDia: 8,
+          valorMensalPretendido: 1800,
+          custoKwh: 0.91,
+          equipamentos: [],
+          tipoBotijao: 'P13',
+          valorBotijao: 115,
+          taxaImpostos: 5,
+          lucroPretendidoPercentual: 30,
+          uid: user.id
+        });
       }
-    }
-
-    fetchSettings();
+    });
 
     const unsubReceitas = dbService.subscribe<Receita>('receitas', user.id, (data) => {
       setReceitas(data);
@@ -89,6 +77,7 @@ export function Precificacao() {
     });
 
     return () => {
+      unsubConfig();
       unsubReceitas();
       unsubCustos();
       unsubDepr();

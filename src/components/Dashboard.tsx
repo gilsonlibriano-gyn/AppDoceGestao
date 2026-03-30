@@ -49,17 +49,13 @@ export function Dashboard() {
   React.useEffect(() => {
     if (!user) return;
 
-    const fetchConfig = async () => {
-      try {
-        const data = await dbService.getSingleByUid<Configuracoes>('configuracoes', user.id);
-        if (data) {
-          setConfig(data);
-        }
-      } catch (error) {
-        console.error('Error fetching config:', error);
+    const unsubConfig = dbService.subscribe<Configuracoes>('configuracoes', user.id, (data) => {
+      if (data && data.length > 0) {
+        setConfig(data[0]);
       }
-    };
-    fetchConfig();
+    });
+
+    return () => unsubConfig();
   }, [user]);
 
   React.useEffect(() => {

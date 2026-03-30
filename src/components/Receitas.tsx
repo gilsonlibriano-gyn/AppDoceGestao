@@ -58,17 +58,11 @@ export function Receitas() {
 
     setLoading(true);
 
-    async function fetchSettings() {
-      try {
-        const data = await dbService.getSingleByUid<Configuracoes>('configuracoes', user.id);
-        if (data) {
-          setConfig(data);
-        }
-      } catch (error) {
-        console.error('Error fetching settings:', error);
+    const unsubConfig = dbService.subscribe<Configuracoes>('configuracoes', user.id, (data) => {
+      if (data && data.length > 0) {
+        setConfig(data[0]);
       }
-    }
-    fetchSettings();
+    });
 
     const timeout = setTimeout(() => setLoading(false), 2000);
 
@@ -83,6 +77,7 @@ export function Receitas() {
 
     return () => {
       clearTimeout(timeout);
+      unsubConfig();
       unsubReceitas();
       unsubInsumos();
     };
@@ -821,63 +816,31 @@ export function Receitas() {
               </div>
             </form>
 
-            <div className="p-6 border-t border-neutral-100 bg-neutral-50 shrink-0">
-              <div className="space-y-4">
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-4 p-3 bg-white rounded-lg border border-neutral-200 shadow-sm">
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Insumos</span>
-                    <span className="text-sm font-semibold text-blue-600">{currentRecipeCost ? formatCurrency(currentRecipeCost.ingredientes) : 'R$ 0,00'}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Embalagens</span>
-                    <span className="text-sm font-semibold text-purple-600">{currentRecipeCost ? formatCurrency(currentRecipeCost.embalagens) : 'R$ 0,00'}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Mão de Obra</span>
-                    <span className="text-sm font-semibold text-amber-600">{currentRecipeCost ? formatCurrency(currentRecipeCost.maoDeObra) : 'R$ 0,00'}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Energia</span>
-                    <span className="text-sm font-semibold text-yellow-600">{currentRecipeCost ? formatCurrency(currentRecipeCost.energia) : 'R$ 0,00'}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Gás</span>
-                    <span className="text-sm font-semibold text-orange-600">{currentRecipeCost ? formatCurrency(currentRecipeCost.gas) : 'R$ 0,00'}</span>
-                  </div>
-                  <div className="flex flex-col">
-                    <span className="text-[10px] uppercase tracking-wider text-neutral-500 font-bold">Outras</span>
-                    <span className="text-sm font-semibold text-neutral-600">{currentRecipeCost ? formatCurrency(currentRecipeCost.outras) : 'R$ 0,00'}</span>
-                  </div>
+            <div className="p-6 border-t border-neutral-100 bg-neutral-50 flex items-center justify-between shrink-0">
+              <div className="flex flex-col">
+                <div className="text-sm">
+                  <span className="text-neutral-500">Custo Total da Receita: </span>
+                  <span className="text-lg font-bold text-neutral-900">
+                    {currentRecipeCost ? formatCurrency(currentRecipeCost.total) : 'R$ 0,00'}
+                  </span>
                 </div>
-
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                  <div className="flex flex-col">
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-sm text-neutral-500 font-medium">Custo Total da Receita:</span>
-                      <span className="text-2xl font-black text-indigo-600">
-                        {currentRecipeCost ? formatCurrency(currentRecipeCost.total) : 'R$ 0,00'}
-                      </span>
-                    </div>
-                    {!config && (
-                      <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1 mt-1">
-                        <Info className="w-3 h-3" /> Configure os custos base em "Configurações" para ver o cálculo real.
-                      </span>
-                    )}
-                    {config && currentRecipeCost && currentRecipeCost.total === 0 && formData.ingredientes.length > 0 && (
-                      <span className="text-[10px] text-amber-600 font-medium flex items-center gap-1 mt-1">
-                        <Info className="w-3 h-3" /> Verifique se os insumos selecionados possuem preço cadastrado.
-                      </span>
-                    )}
-                  </div>
-                  
-                  <div className="flex gap-3">
-                    <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
-                    <Button type="submit" form="receita-form" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700 shadow-md shadow-indigo-200">
-                      {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
-                      Salvar Receita
-                    </Button>
-                  </div>
-                </div>
+                {!config && (
+                  <span className="text-[10px] text-amber-600 font-medium">
+                    ⚠️ Configure os custos base em "Configurações" para ver o cálculo real.
+                  </span>
+                )}
+                {config && currentRecipeCost && currentRecipeCost.total === 0 && formData.ingredientes.length > 0 && (
+                  <span className="text-[10px] text-amber-600 font-medium">
+                    ⚠️ Verifique se os insumos selecionados possuem preço cadastrado.
+                  </span>
+                )}
+              </div>
+              <div className="flex gap-3">
+                <Button type="button" variant="outline" onClick={() => setIsModalOpen(false)}>Cancelar</Button>
+                <Button type="submit" form="receita-form" disabled={isSubmitting} className="bg-indigo-600 hover:bg-indigo-700">
+                  {isSubmitting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                  Salvar Receita
+                </Button>
               </div>
             </div>
           </Card>
