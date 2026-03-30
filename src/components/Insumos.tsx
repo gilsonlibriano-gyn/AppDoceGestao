@@ -12,7 +12,6 @@ import {
   Package,
   X,
   Loader2,
-  AlertCircle,
   Tag,
   Scale,
   DollarSign,
@@ -24,12 +23,10 @@ import {
   Info,
   History,
   ArrowUpRight,
-  ArrowDownRight,
-  FileText
+  ArrowDownRight
 } from 'lucide-react';
 import { Button, Input, Label, Card } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
-import { NFImportModal } from './NFImportModal';
 import { formatCurrency, cn, formatNumber } from '../lib/utils';
 import { MateriaPrima } from '../types';
 import { CostService } from '../services/costService';
@@ -43,7 +40,6 @@ export function Insumos() {
   const [loading, setLoading] = React.useState(true);
   const [searchTerm, setSearchTerm] = React.useState('');
   const [isModalOpen, setIsModalOpen] = React.useState(false);
-  const [isNFModalOpen, setIsNFModalOpen] = React.useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = React.useState(false);
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [editingInsumo, setEditingInsumo] = React.useState<MateriaPrima | null>(null);
@@ -242,14 +238,6 @@ export function Insumos() {
           <p className="text-neutral-500">Controle de ingredientes e embalagens</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            variant="outline"
-            onClick={() => setIsNFModalOpen(true)}
-            className="w-full sm:w-auto border-indigo-200 text-indigo-600 hover:bg-indigo-50"
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            Importar de Nota Fiscal
-          </Button>
           <Button onClick={() => {
             setEditingInsumo(null);
             setFormData({
@@ -689,13 +677,6 @@ export function Insumos() {
         onConfirm={confirmDelete}
         title="Excluir Ingrediente"
         message="Tem certeza que deseja excluir este ingrediente? Esta ação não pode ser desfeita."
-      />
-
-      <NFImportModal 
-        isOpen={isNFModalOpen}
-        onClose={() => setIsNFModalOpen(false)}
-        onImportComplete={fetchInsumos}
-        activeTab={activeTab}
       />
     </div>
   );

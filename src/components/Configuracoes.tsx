@@ -136,7 +136,7 @@ export function Configuracoes() {
     <div className="space-y-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-2xl font-bold text-neutral-900">Configurações de Custos</h1>
-        <p className="text-neutral-500">Ajuste os parâmetros conforme Image 1 para cálculos precisos.</p>
+        <p className="text-neutral-500">Ajuste os parâmetros para cálculos precisos de custos e precificação.</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">

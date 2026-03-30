@@ -96,10 +96,25 @@
       "description": "Parâmetros globais de rateio",
       "type": "object",
       "properties": {
-        "horasProducaoMensal": { "type": "number" },
-        "valorHoraMOD": { "type": "number" },
-        "custoMensalGas": { "type": "number" },
-        "custoMensalEletricidade": { "type": "number" },
+        "diasTrabalhadosMes": { "type": "number" },
+        "horasTrabalhadasDia": { "type": "number" },
+        "valorMensalPretendido": { "type": "number" },
+        "custoKwh": { "type": "number" },
+        "equipamentos": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "string" },
+              "nome": { "type": "string" },
+              "potenciaW": { "type": "number" }
+            }
+          }
+        },
+        "tipoBotijao": { "type": "string", "enum": ["P13", "P45"] },
+        "valorBotijao": { "type": "number" },
+        "taxaImpostos": { "type": "number" },
+        "lucroPretendidoPercentual": { "type": "number" },
         "uid": { "type": "string" }
       },
       "required": ["uid"]

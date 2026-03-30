@@ -96,7 +96,7 @@ export function Dashboard() {
               0 // producaoMensal padrão para o dashboard
             );
             price = pricing.precoVendaSugerido;
-            margin = pricing.margemContribuicaoPercentual * 100;
+            margin = pricing.margemContribuicaoPercentual;
           } else {
             const markup = 1 - 0.3 - 0.05;
             price = cost / markup;

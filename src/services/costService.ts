@@ -15,37 +15,47 @@ import {
 
 export class CostService {
   static calculateUnitCostMP(mp: MateriaPrima): number {
-    return mp.preco || 0;
+    return Number(mp.preco) || 0;
   }
 
   static calculateDepreciationMonthly(bem: Depreciacao): number {
-    if (bem.vidaUtil > 0) {
-      return bem.valor / bem.vidaUtil;
+    const valor = Number(bem.valor) || 0;
+    const vidaUtil = Number(bem.vidaUtil) || 0;
+    if (vidaUtil > 0) {
+      return valor / vidaUtil;
     }
     return 0;
   }
 
   static calculateTotalDepreciationMonthly(bens: Depreciacao[]): number {
-    return bens.reduce((total, bem) => total + this.calculateDepreciationMonthly(bem), 0);
+    return (bens || []).reduce((total, bem) => total + this.calculateDepreciationMonthly(bem), 0);
   }
 
   static calculateHourlyRateMOD(config: Configuracoes): number {
-    const totalHours = config.diasTrabalhadosMes * config.horasTrabalhadasDia;
+    const diasTrabalhadosMes = Number(config.diasTrabalhadosMes) || 0;
+    const horasTrabalhadasDia = Number(config.horasTrabalhadasDia) || 0;
+    const valorMensalPretendido = Number(config.valorMensalPretendido) || 0;
+    
+    const totalHours = diasTrabalhadosMes * horasTrabalhadasDia;
     if (totalHours > 0) {
-      return config.valorMensalPretendido / totalHours;
+      return valorMensalPretendido / totalHours;
     }
     return 0;
   }
 
   static calculateEnergyCost(potenciaW: number, tempoMinutos: number, custoKwh: number): number {
-    if (!custoKwh || isNaN(custoKwh)) return 0;
-    return (potenciaW / 1000) * (tempoMinutos / 60) * custoKwh;
+    const pW = Number(potenciaW) || 0;
+    const tM = Number(tempoMinutos) || 0;
+    const cK = Number(custoKwh) || 0;
+    if (cK === 0) return 0;
+    return (pW / 1000) * (tM / 60) * cK;
   }
 
   static calculateGasCost(nivel: 'BAIXO' | 'MEDIO' | 'ALTO', tempoMinutos: number, config: Configuracoes): number {
     if (!config || !config.valorBotijao) return 0;
+    const valorBotijao = Number(config.valorBotijao) || 0;
     const pesoBotijao = config.tipoBotijao === 'P13' ? 13 : 45;
-    const custoPorKg = config.valorBotijao / pesoBotijao;
+    const custoPorKg = valorBotijao / pesoBotijao;
     
     // Consumo kg/h conforme imagem
     const consumos = {
@@ -56,7 +66,7 @@ export class CostService {
     
     const consumoKgH = consumos[nivel] || 0;
     const custoPorHora = consumoKgH * custoPorKg;
-    return (custoPorHora / 60) * tempoMinutos;
+    return (custoPorHora / 60) * (Number(tempoMinutos) || 0);
   }
 
   static calculateRecipeCost(receita: Receita, materiasPrimas: MateriaPrima[], config: Configuracoes): {
@@ -74,19 +84,19 @@ export class CostService {
     (receita.ingredientes || []).forEach(item => {
       const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
       if (mp) {
-        ingredientes += this.calculateUnitCostMP(mp) * item.quantidade;
+        ingredientes += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
       }
     });
 
     (receita.embalagens || []).forEach(item => {
       const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
       if (mp) {
-        embalagens += this.calculateUnitCostMP(mp) * item.quantidade;
+        embalagens += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
       }
     });
 
     const hourlyRateMOD = this.calculateHourlyRateMOD(config);
-    const maoDeObra = (receita.tempoPreparo / 60) * hourlyRateMOD;
+    const maoDeObra = ((Number(receita.tempoPreparo) || 0) / 60) * hourlyRateMOD;
 
     let energia = 0;
     (receita.usoEnergia || []).forEach(uso => {
@@ -98,7 +108,7 @@ export class CostService {
       gas += this.calculateGasCost(uso.nivel, uso.tempoMinutos, config);
     });
 
-    const outras = receita.outrasDespesas || 0;
+    const outras = Number(receita.outrasDespesas) || 0;
     const total = ingredientes + embalagens + maoDeObra + energia + gas + outras;
 
     return {
