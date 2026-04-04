@@ -173,7 +173,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
               <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
               <div className="flex flex-col">
                 <span className="font-bold text-neutral-900 leading-none">Doce Gestão</span>
-                <span className="text-[10px] text-orange-500 font-bold">v1.2</span>
+                <span className="text-[10px] text-orange-500 font-bold">Precificação v1.2</span>
               </div>
             </div>
             <button 
@@ -190,7 +190,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-neutral-900 text-lg leading-none">Doce Gestão</span>
-              <span className="text-[10px] text-orange-500 mt-1 font-bold">v1.2 - Atualizado</span>
+              <span className="text-[10px] text-orange-500 mt-1 font-bold">Precificação v1.2</span>
             </div>
           </div>
 

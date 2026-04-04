@@ -79,36 +79,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password: targetPassword,
       });
 
-      // If it's the admin and it doesn't exist yet, try to auto-create it
-      if (error && isAdmin && (error.message.includes('Invalid login credentials') || error.status === 400 || error.status === 401)) {
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: targetEmail,
-          password: targetPassword,
-          options: { data: { full_name: 'Administrador' } }
-        });
-        
-        // If sign up succeeds or user already exists, try to sign in again
-        if (!signUpError || signUpError.message?.includes('already registered')) {
-          const { error: secondSignInError } = await supabase.auth.signInWithPassword({ 
-            email: targetEmail, 
-            password: targetPassword 
+      // If it's the admin and there's ANY error, try to handle it gracefully
+      if (error && isAdmin) {
+        // If it's a credentials error, try to auto-create
+        if (error.message.includes('Invalid login credentials') || error.status === 400 || error.status === 401) {
+          const { error: signUpError } = await supabase.auth.signUp({
+            email: targetEmail,
+            password: targetPassword,
+            options: { data: { full_name: 'Administrador' } }
           });
           
-          if (secondSignInError) {
-            // If it still fails (e.g. email confirmation required), allow local access for admin
-            if (isAdmin && password === '1234') {
-              setUser({ 
-                id: 'admin-temp-id', 
-                email: 'admin@deliciarte.com',
-                user_metadata: { full_name: 'Administrador (Sincronização Pendente)' }
-              } as any);
-              return;
-            }
-            throw secondSignInError;
+          // If sign up succeeds or user already exists, try to sign in again
+          if (!signUpError || signUpError.message?.includes('already registered')) {
+            const { error: secondSignInError } = await supabase.auth.signInWithPassword({ 
+              email: targetEmail, 
+              password: targetPassword 
+            });
+            
+            if (!secondSignInError) return;
           }
+        }
+
+        // For admin, if cloud login fails for ANY reason (credentials, confirmation, network), 
+        // fallback to local/temp mode so the user is never locked out.
+        if (password === '1234') {
+          console.log("Admin login: Falling back to local/temp mode due to error:", error);
+          setUser({ 
+            id: 'admin-temp-id', 
+            email: 'admin@deliciarte.com',
+            user_metadata: { full_name: 'Administrador (Modo de Segurança)' }
+          } as any);
           return;
         }
-        throw signUpError;
       }
 
       if (error) throw error;
