@@ -45,6 +45,7 @@ export function Insumos() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [editingInsumo, setEditingInsumo] = React.useState<MateriaPrima | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [statusMessage, setStatusMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   const [activeTab, setActiveTab] = React.useState<'INGREDIENTE' | 'EMBALAGEM'>('INGREDIENTE');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc' | 'none'>('none');
@@ -145,6 +146,7 @@ export function Insumos() {
     if (!user || isSubmitting) return;
 
     setIsSubmitting(true);
+    setStatusMessage(null);
     console.log('Insumos: Iniciando salvamento...', { editingInsumo, formData });
     try {
       const data: any = {
@@ -170,6 +172,11 @@ export function Insumos() {
       }
 
       await fetchInsumos();
+      setStatusMessage({ type: 'success', text: 'Salvo com sucesso!' });
+      
+      // Clear message after 3 seconds
+      setTimeout(() => setStatusMessage(null), 3000);
+      
       setIsModalOpen(false);
       setEditingInsumo(null);
       setFormData({
@@ -186,8 +193,9 @@ export function Insumos() {
         quantidadeItens: '1',
         valorUnitario: ''
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar insumo:', error);
+      setStatusMessage({ type: 'error', text: `Erro ao salvar: ${error.message || 'Tente novamente.'}` });
     } finally {
       setIsSubmitting(false);
     }
@@ -455,6 +463,15 @@ export function Insumos() {
                 <X className="w-5 h-5" />
               </button>
             </div>
+
+            {statusMessage && (
+              <div className={cn(
+                "px-6 py-3 text-sm font-medium animate-in fade-in slide-in-from-top-2",
+                statusMessage.type === 'success' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+              )}>
+                {statusMessage.text}
+              </div>
+            )}
             
             <form id="insumo-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-8 min-h-0">
               {/* Seção 1: Identificação */}

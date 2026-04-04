@@ -38,6 +38,7 @@ export function Receitas() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [editingReceita, setEditingReceita] = React.useState<BaseReceita | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [statusMessage, setStatusMessage] = React.useState<{ type: 'success' | 'error', text: string } | null>(null);
 
   // Form state
   const [formData, setFormData] = React.useState<any>({
@@ -141,6 +142,7 @@ export function Receitas() {
     if (!user || isSubmitting) return;
 
     setIsSubmitting(true);
+    setStatusMessage(null);
     try {
       const sanitizedIngredientes = formData.ingredientes.map(ing => ({
         ...ing,
@@ -163,9 +165,13 @@ export function Receitas() {
           createdAt: new Date().toISOString()
         });
       }
+      
+      setStatusMessage({ type: 'success', text: 'Receita salva com sucesso!' });
+      setTimeout(() => setStatusMessage(null), 3000);
       setIsModalOpen(false);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar receita:', error);
+      setStatusMessage({ type: 'error', text: `Erro ao salvar: ${error.message || 'Tente novamente.'}` });
     } finally {
       setIsSubmitting(false);
     }
@@ -321,6 +327,15 @@ export function Receitas() {
                 <X className="w-5 h-5" />
               </Button>
             </div>
+
+            {statusMessage && (
+              <div className={cn(
+                "px-6 py-3 text-sm font-medium animate-in fade-in slide-in-from-top-2",
+                statusMessage.type === 'success' ? "bg-emerald-50 text-emerald-600" : "bg-red-50 text-red-600"
+              )}>
+                {statusMessage.text}
+              </div>
+            )}
             
             <form id="receita-form" onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-6 space-y-6 min-h-0">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

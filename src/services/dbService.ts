@@ -4,7 +4,7 @@ const GUEST_UID = '00000000-0000-0000-0000-000000000000';
 
 export class DBService {
   private isGuest(uid: string) {
-    return uid === GUEST_UID;
+    return uid === GUEST_UID || uid?.startsWith('admin-');
   }
 
   private generateId() {
