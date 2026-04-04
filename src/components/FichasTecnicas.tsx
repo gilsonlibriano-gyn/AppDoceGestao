@@ -316,7 +316,7 @@ export function FichasTecnicas() {
         quantidade: parseFloat(emb.quantidade as any) || 0
       }));
 
-      const totalCostObj = config ? CostService.calculateRecipeCost({ 
+      const totalCostObj = CostService.calculateRecipeCost({ 
         ...formData, 
         tempoPreparo: parseFloat(formData.tempoPreparo) || 0,
         rendimento: parseFloat(formData.rendimento) || 1,
@@ -324,12 +324,12 @@ export function FichasTecnicas() {
         lucroPretendidoPercentual: parseFloat(formData.lucroPretendidoPercentual) || 30,
         ingredientes: sanitizedIngredientes,
         embalagens: sanitizedEmbalagens,
-        usoEnergia: formData.usoEnergia.map(u => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
-        usoGas: formData.usoGas.map(u => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
+        usoEnergia: formData.usoEnergia.map((u: any) => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
+        usoGas: formData.usoGas.map((u: any) => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
         id: 'temp', 
         uid: user.id,
         custoTotal: 0
-      }, insumos, config, receitasBase) : { total: 0 };
+      }, insumos, config, receitasBase);
 
       const data = {
         ...formData,
@@ -384,7 +384,6 @@ export function FichasTecnicas() {
   };
 
   const calculateRecipeCostValue = (receita: Receita) => {
-    if (!config) return 0;
     return CostService.calculateRecipeCost(receita, insumos, config, receitasBase).total;
   };
 
@@ -393,17 +392,16 @@ export function FichasTecnicas() {
   );
 
   const currentRecipeCost = React.useMemo(() => {
-    if (!config) return null;
     return CostService.calculateRecipeCost({
       ...formData,
       tempoPreparo: parseFloat(formData.tempoPreparo) || 0,
       rendimento: parseFloat(formData.rendimento) || 1,
       outrasDespesas: parseFloat(formData.outrasDespesas) || 0,
       lucroPretendidoPercentual: parseFloat(formData.lucroPretendidoPercentual) || 30,
-      ingredientes: formData.ingredientes.map(ing => ({ ...ing, quantidade: parseFloat(ing.quantidade as any) || 0 })),
-      embalagens: formData.embalagens.map(emb => ({ ...emb, quantidade: parseFloat(emb.quantidade as any) || 0 })),
-      usoEnergia: formData.usoEnergia.map(u => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
-      usoGas: formData.usoGas.map(u => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
+      ingredientes: formData.ingredientes.map((ing: any) => ({ ...ing, quantidade: parseFloat(ing.quantidade as any) || 0 })),
+      embalagens: formData.embalagens.map((emb: any) => ({ ...emb, quantidade: parseFloat(emb.quantidade as any) || 0 })),
+      usoEnergia: formData.usoEnergia.map((u: any) => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
+      usoGas: formData.usoGas.map((u: any) => ({ ...u, tempoMinutos: parseFloat(u.tempoMinutos) || 0 })),
       id: 'temp',
       uid: user?.id || '',
       custoTotal: 0

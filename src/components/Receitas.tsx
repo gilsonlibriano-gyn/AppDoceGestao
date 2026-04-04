@@ -265,10 +265,25 @@ export function Receitas() {
               
               <CardContent className="flex-1">
                 <h3 className="text-lg font-bold text-neutral-900 mb-4 line-clamp-1">{receita.nome}</h3>
-                <div className="flex items-center gap-4 text-sm text-neutral-500">
+                <div className="flex items-center gap-4 text-sm text-neutral-500 mb-4">
                   <div className="flex items-center gap-1.5">
                     <PieChart className="w-4 h-4 text-neutral-400" />
                     <span>Rendimento: {receita.rendimento}</span>
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4 pt-4 border-t border-neutral-50">
+                  <div>
+                    <p className="text-[10px] text-neutral-400 uppercase font-bold">Custo Total</p>
+                    <p className="font-bold text-orange-600">
+                      {formatCurrency(CostService.calculateBaseReceitaCost(receita, insumos))}
+                    </p>
+                  </div>
+                  <div>
+                    <p className="text-[10px] text-neutral-400 uppercase font-bold">Custo Unit.</p>
+                    <p className="font-bold text-neutral-700">
+                      {formatCurrency(CostService.calculateBaseReceitaCost(receita, insumos) / (parseFloat(receita.rendimento as any) || 1))}
+                    </p>
                   </div>
                 </div>
               </CardContent>

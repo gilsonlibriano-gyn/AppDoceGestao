@@ -15,24 +15,41 @@ import {
 } from "../types";
 
 export class CostService {
+  private static parseNumber(val: any): number {
+    if (typeof val === 'number') return val;
+    if (typeof val === 'string') {
+      // Handle Brazilian format with commas
+      const cleaned = val.replace(/\./g, '').replace(',', '.');
+      const num = parseFloat(cleaned);
+      return isNaN(num) ? 0 : num;
+    }
+    return 0;
+  }
+
   static calculateUnitCostMP(mp: MateriaPrima): number {
-    return Number(mp.preco) || 0;
+    return this.parseNumber(mp.preco);
   }
 
   static calculateBaseReceitaCost(receita: BaseReceita, materiasPrimas: MateriaPrima[]): number {
     let total = 0;
-    (receita.ingredientes || []).forEach(item => {
-      const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
+    const ingredientes = receita.ingredientes || [];
+    
+    ingredientes.forEach(item => {
+      if (!item.materiaPrimaId) return;
+      
+      const mp = materiasPrimas.find(m => String(m.id) === String(item.materiaPrimaId));
       if (mp) {
-        total += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
+        const unitCost = this.calculateUnitCostMP(mp);
+        const quantity = this.parseNumber(item.quantidade);
+        total += unitCost * quantity;
       }
     });
     return total;
   }
 
   static calculateDepreciationMonthly(bem: Depreciacao): number {
-    const valor = Number(bem.valor) || 0;
-    const vidaUtil = Number(bem.vidaUtil) || 0;
+    const valor = this.parseNumber(bem.valor);
+    const vidaUtil = this.parseNumber(bem.vidaUtil);
     if (vidaUtil > 0) {
       return valor / vidaUtil;
     }
@@ -43,10 +60,11 @@ export class CostService {
     return (bens || []).reduce((total, bem) => total + this.calculateDepreciationMonthly(bem), 0);
   }
 
-  static calculateHourlyRateMOD(config: Configuracoes): number {
-    const diasTrabalhadosMes = Number(config.diasTrabalhadosMes) || 0;
-    const horasTrabalhadasDia = Number(config.horasTrabalhadasDia) || 0;
-    const valorMensalPretendido = Number(config.valorMensalPretendido) || 0;
+  static calculateHourlyRateMOD(config: Configuracoes | null): number {
+    if (!config) return 0;
+    const diasTrabalhadosMes = this.parseNumber(config.diasTrabalhadosMes);
+    const horasTrabalhadasDia = this.parseNumber(config.horasTrabalhadasDia);
+    const valorMensalPretendido = this.parseNumber(config.valorMensalPretendido);
     
     const totalHours = diasTrabalhadosMes * horasTrabalhadasDia;
     if (totalHours > 0) {
@@ -55,17 +73,17 @@ export class CostService {
     return 0;
   }
 
-  static calculateEnergyCost(potenciaW: number, tempoMinutos: number, custoKwh: number): number {
-    const pW = Number(potenciaW) || 0;
-    const tM = Number(tempoMinutos) || 0;
-    const cK = Number(custoKwh) || 0;
+  static calculateEnergyCost(potenciaW: number, tempoMinutos: number, custoKwh: number | undefined): number {
+    const pW = this.parseNumber(potenciaW);
+    const tM = this.parseNumber(tempoMinutos);
+    const cK = this.parseNumber(custoKwh);
     if (cK === 0) return 0;
     return (pW / 1000) * (tM / 60) * cK;
   }
 
-  static calculateGasCost(nivel: 'BAIXO' | 'MEDIO' | 'ALTO', tempoMinutos: number, config: Configuracoes): number {
+  static calculateGasCost(nivel: 'BAIXO' | 'MEDIO' | 'ALTO', tempoMinutos: number, config: Configuracoes | null): number {
     if (!config || !config.valorBotijao) return 0;
-    const valorBotijao = Number(config.valorBotijao) || 0;
+    const valorBotijao = this.parseNumber(config.valorBotijao);
     const pesoBotijao = config.tipoBotijao === 'P13' ? 13 : 45;
     const custoPorKg = valorBotijao / pesoBotijao;
     
@@ -78,13 +96,13 @@ export class CostService {
     
     const consumoKgH = consumos[nivel] || 0;
     const custoPorHora = consumoKgH * custoPorKg;
-    return (custoPorHora / 60) * (Number(tempoMinutos) || 0);
+    return (custoPorHora / 60) * this.parseNumber(tempoMinutos);
   }
 
   static calculateRecipeCost(
     receita: Receita, 
     materiasPrimas: MateriaPrima[], 
-    config: Configuracoes,
+    config: Configuracoes | null,
     receitasBase: BaseReceita[] = []
   ): {
     ingredientes: number;
@@ -102,14 +120,15 @@ export class CostService {
       if (item.materiaPrimaId) {
         const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
         if (mp) {
-          ingredientes += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
+          ingredientes += this.calculateUnitCostMP(mp) * this.parseNumber(item.quantidade);
         }
       } else if (item.receitaBaseId) {
         const rb = receitasBase.find(r => r.id === item.receitaBaseId);
         if (rb) {
           const rbCost = this.calculateBaseReceitaCost(rb, materiasPrimas);
-          const unitCost = rb.rendimento > 0 ? rbCost / rb.rendimento : 0;
-          ingredientes += unitCost * (Number(item.quantidade) || 0);
+          const rendimento = this.parseNumber(rb.rendimento);
+          const unitCost = rendimento > 0 ? rbCost / rendimento : 0;
+          ingredientes += unitCost * this.parseNumber(item.quantidade);
         }
       }
     });
@@ -117,16 +136,16 @@ export class CostService {
     (receita.embalagens || []).forEach(item => {
       const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
       if (mp) {
-        embalagens += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
+        embalagens += this.calculateUnitCostMP(mp) * this.parseNumber(item.quantidade);
       }
     });
 
     const hourlyRateMOD = this.calculateHourlyRateMOD(config);
-    const maoDeObra = ((Number(receita.tempoPreparo) || 0) / 60) * hourlyRateMOD;
+    const maoDeObra = (this.parseNumber(receita.tempoPreparo) / 60) * hourlyRateMOD;
 
     let energia = 0;
     (receita.usoEnergia || []).forEach(uso => {
-      energia += this.calculateEnergyCost(uso.potenciaW, uso.tempoMinutos, config.custoKwh);
+      energia += this.calculateEnergyCost(uso.potenciaW, uso.tempoMinutos, config?.custoKwh);
     });
 
     let gas = 0;
@@ -134,7 +153,7 @@ export class CostService {
       gas += this.calculateGasCost(uso.nivel, uso.tempoMinutos, config);
     });
 
-    const outras = Number(receita.outrasDespesas) || 0;
+    const outras = this.parseNumber(receita.outrasDespesas);
     const total = ingredientes + embalagens + maoDeObra + energia + gas + outras;
 
     return {
@@ -151,7 +170,7 @@ export class CostService {
   static calculateRecipeCosts(
     receita: Receita, 
     materiasPrimas: MateriaPrima[],
-    config: Configuracoes,
+    config: Configuracoes | null,
     custosFixos: CustoFixo[],
     bens: Depreciacao[],
     targetProfitMargin: number,
@@ -162,46 +181,48 @@ export class CostService {
     const breakdown = this.calculateRecipeCost(receita, materiasPrimas, config, receitasBase);
     
     // Custo MP e Embalagens Unitário
-    const custoMPUnitario = receita.rendimento > 0 ? breakdown.ingredientes / receita.rendimento : 0;
-    const custoEmbalagemUnitario = receita.rendimento > 0 ? breakdown.embalagens / receita.rendimento : 0;
+    const rendimento = this.parseNumber(receita.rendimento) || 1;
+    const custoMPUnitario = breakdown.ingredientes / rendimento;
+    const custoEmbalagemUnitario = breakdown.embalagens / rendimento;
 
     // Custo MOD Unitário
-    const custoMODUnitario = receita.rendimento > 0 ? breakdown.maoDeObra / receita.rendimento : 0;
+    const custoMODUnitario = breakdown.maoDeObra / rendimento;
 
     // Utilidades Unitário
-    const custoGasUnitario = receita.rendimento > 0 ? breakdown.gas / receita.rendimento : 0;
-    const custoEletricidadeUnitario = receita.rendimento > 0 ? breakdown.energia / receita.rendimento : 0;
+    const custoGasUnitario = breakdown.gas / rendimento;
+    const custoEletricidadeUnitario = breakdown.energia / rendimento;
     
     // Custo Variável Unitário (MP + Embalagem + MOD + Utilidades + Outras da receita)
-    const custoVariavelUnitario = receita.rendimento > 0 ? breakdown.total / receita.rendimento : 0;
+    const custoVariavelUnitario = breakdown.total / rendimento;
 
     // Custo Fixo
     let custoFixoRateadoUnitario = 0;
-    const totalCF = custosFixos.reduce((total, cf) => total + cf.valor, 0);
+    const totalCF = custosFixos.reduce((total, cf) => total + this.parseNumber(cf.valor), 0);
     const totalDepreciation = this.calculateTotalDepreciationMonthly(bens);
     const totalCFWithDepreciation = totalCF + totalDepreciation;
     
-    const totalHours = config.diasTrabalhadosMes * config.horasTrabalhadasDia;
+    const diasTrabalhadosMes = config ? this.parseNumber(config.diasTrabalhadosMes) : 0;
+    const horasTrabalhadasDia = config ? this.parseNumber(config.horasTrabalhadasDia) : 0;
+    const totalHours = diasTrabalhadosMes * horasTrabalhadasDia;
     const rateCF = totalHours > 0 ? totalCFWithDepreciation / totalHours : 0;
 
     if (producaoMensalDesejada > 0) {
       custoFixoRateadoUnitario = totalCFWithDepreciation / producaoMensalDesejada;
     } else {
-      const tempoEmHoras = receita.tempoPreparo / 60.0;
+      const tempoEmHoras = this.parseNumber(receita.tempoPreparo) / 60.0;
       const custoFixoLote = rateCF * tempoEmHoras;
-      custoFixoRateadoUnitario = receita.rendimento > 0 ? custoFixoLote / receita.rendimento : 0;
+      custoFixoRateadoUnitario = custoFixoLote / rendimento;
     }
 
     // Custo Total (Absorção)
     const custoTotalAbsorcaoUnitario = custoVariavelUnitario + custoFixoRateadoUnitario;
 
     // Markup Divisor (1 - Impostos - Margem)
-    const taxDecimal = (config.taxaImpostos || 0) / 100;
+    const taxDecimal = config ? (this.parseNumber(config.taxaImpostos) / 100) : 0;
     const marginDecimal = targetProfitMargin / 100;
     const markupDivisor = 1.0 - (taxDecimal + marginDecimal);
     
     // Preço de Venda Sugerido
-    // precoBase = (Custo Fixo + Custo Variável + Outras Desp Var Unitarias) / (1 - Impostos - Margem Lucro)
     const precoVendaSugerido = markupDivisor > 0 
       ? (custoTotalAbsorcaoUnitario + outrasDespesasVariaveis) / markupDivisor 
       : 0;
@@ -237,12 +258,12 @@ export class CostService {
   static calculateBreakEven(
     receitaRef: Receita,
     materiasPrimas: MateriaPrima[],
-    config: Configuracoes,
+    config: Configuracoes | null,
     custosFixos: CustoFixo[],
     bens: Depreciacao[],
     receitasBase: BaseReceita[] = []
   ): BreakEvenResults {
-    const totalCF = custosFixos.reduce((total, cf) => total + cf.valor, 0);
+    const totalCF = custosFixos.reduce((total, cf) => total + this.parseNumber(cf.valor), 0);
     const totalDepreciation = this.calculateTotalDepreciationMonthly(bens);
     const totalCFWithDepreciation = totalCF + totalDepreciation;
 
@@ -252,13 +273,13 @@ export class CostService {
       config, 
       custosFixos, 
       bens, 
-      receitaRef.lucroPretendidoPercentual || config.lucroPretendidoPercentual || 30,
+      receitaRef.lucroPretendidoPercentual || config?.lucroPretendidoPercentual || 30,
       0,
       0,
       receitasBase
     );
 
-    const taxDecimal = (config.taxaImpostos || 0) / 100;
+    const taxDecimal = config ? (this.parseNumber(config.taxaImpostos) / 100) : 0;
     const mcu = pricing.precoVendaSugerido - pricing.custoVariavelUnitario - (pricing.precoVendaSugerido * taxDecimal);
     const imc = pricing.precoVendaSugerido > 0 ? mcu / pricing.precoVendaSugerido : 0;
     

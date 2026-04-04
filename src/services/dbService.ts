@@ -81,8 +81,8 @@ export class DBService {
       const localData = this.getLocalData<any>(table);
       const newItem = { 
         ...data, 
-        id: this.generateId(), 
-        created_at: new Date().toISOString() 
+        id: data.id || this.generateId(), 
+        created_at: data.created_at || new Date().toISOString() 
       };
       localData.push(newItem);
       this.setLocalData(table, localData);

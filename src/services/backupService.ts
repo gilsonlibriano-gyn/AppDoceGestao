@@ -94,8 +94,7 @@ export class BackupService {
 
               for (const item of items) {
                 try {
-                  const { id, created_at, ...data } = item;
-                  await dbService.create(table, { ...data, uid });
+                  await dbService.create(table, { ...item, uid });
                   tableImported++;
                 } catch (err) {
                   console.error(`Error importing item in ${table}:`, err);
