@@ -15,21 +15,31 @@ import {
   LogOut,
   Loader2,
   CheckCircle2,
-  Trash2
+  Trash2,
+  Download,
+  Upload,
+  AlertCircle
 } from 'lucide-react';
 import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
-import { formatCurrency, cleanNumericInput } from '../lib/utils';
+import { formatCurrency, cleanNumericInput, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { supabase } from '../supabase';
 import { Configuracoes as ConfiguracoesType } from '../types';
 import { CostService } from '../services/costService';
+import { BackupService, ImportResult } from '../services/backupService';
+import { ConfirmModal } from './ui/ConfirmModal';
 
 export function Configuracoes() {
   const { user, logout } = useAuth();
   const [loading, setLoading] = React.useState(true);
   const [isSaving, setIsSaving] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
+  const [isImporting, setIsImporting] = React.useState(false);
+  const [importResult, setImportResult] = React.useState<ImportResult | null>(null);
+  const [isImportConfirmOpen, setIsImportConfirmOpen] = React.useState(false);
+  const [pendingFile, setPendingFile] = React.useState<File | null>(null);
 
   const [settings, setSettings] = React.useState<any>({
     diasTrabalhadosMes: '22',
@@ -134,6 +144,41 @@ export function Configuracoes() {
       console.error('Error saving settings:', error);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleExport = async () => {
+    if (!user) return;
+    setIsExporting(true);
+    try {
+      await BackupService.exportData(user.id);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!user || !file) return;
+    setPendingFile(file);
+    setIsImportConfirmOpen(true);
+    e.target.value = ''; // Reset input so same file can be selected again
+  };
+
+  const confirmImport = async () => {
+    if (!user || !pendingFile) return;
+
+    setIsImporting(true);
+    setImportResult(null);
+    try {
+      const result = await BackupService.importData(user.id, pendingFile);
+      setImportResult(result);
+    } catch (error) {
+      console.error('Error in handleImport:', error);
+      setImportResult({ success: false, message: 'Erro inesperado ao importar o backup.' });
+    } finally {
+      setIsImporting(false);
+      setPendingFile(null);
     }
   };
 
@@ -409,6 +454,51 @@ export function Configuracoes() {
             </CardContent>
           </Card>
 
+          {/* Backup e Restauração */}
+          <Card>
+            <CardHeader>
+              <h3 className="font-bold text-neutral-900 flex items-center gap-2">
+                <Save className="w-5 h-5 text-indigo-500" />
+                Backup e Restauração
+              </h3>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-xs text-neutral-500 leading-relaxed">
+                Exporte seus dados para um arquivo JSON para manter uma cópia de segurança ou restaurar em outra conta.
+              </p>
+              
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <Button 
+                  variant="outline" 
+                  className="w-full" 
+                  onClick={handleExport}
+                  disabled={isExporting}
+                >
+                  {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Download className="w-4 h-4 mr-2" />}
+                  Exportar Dados
+                </Button>
+                
+                <div className="relative">
+                  <input
+                    type="file"
+                    accept=".json"
+                    onChange={handleImport}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer disabled:cursor-not-allowed"
+                    disabled={isImporting}
+                  />
+                  <Button 
+                    variant="outline" 
+                    className="w-full" 
+                    disabled={isImporting}
+                  >
+                    {isImporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Upload className="w-4 h-4 mr-2" />}
+                    Importar Backup
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
           <Button 
             variant="outline" 
             className="w-full text-red-500 hover:text-red-600 hover:bg-red-50 border-red-100"
@@ -419,6 +509,80 @@ export function Configuracoes() {
           </Button>
         </div>
       </div>
+
+      {importResult && (
+        <div className="fixed inset-0 z-[110] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+          <Card className="w-full max-w-md animate-in fade-in zoom-in duration-200">
+            <CardContent className="p-6 space-y-6">
+              <div className="text-center space-y-4">
+                <div className={cn(
+                  "w-12 h-12 rounded-full flex items-center justify-center mx-auto",
+                  importResult.success ? "bg-emerald-100 text-emerald-600" : "bg-red-100 text-red-600"
+                )}>
+                  {importResult.success ? <CheckCircle2 className="w-6 h-6" /> : <AlertCircle className="w-6 h-6" />}
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-neutral-900">
+                    {importResult.success ? 'Importação Concluída' : 'Erro na Importação'}
+                  </h3>
+                  <p className="text-sm text-neutral-500 mt-1">{importResult.message}</p>
+                </div>
+              </div>
+
+              {importResult.details && importResult.details.length > 0 && (
+                <div className="bg-neutral-50 rounded-xl border border-neutral-100 overflow-hidden">
+                  <div className="max-h-[200px] overflow-y-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead className="bg-neutral-100/50 text-neutral-500 font-bold uppercase text-[10px]">
+                        <tr>
+                          <th className="px-4 py-2">Módulo</th>
+                          <th className="px-4 py-2 text-center">Sucesso</th>
+                          <th className="px-4 py-2 text-center">Falhas</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-neutral-100">
+                        {importResult.details.map((detail, idx) => (
+                          <tr key={idx} className="hover:bg-white transition-colors">
+                            <td className="px-4 py-2 font-medium text-neutral-700">{detail.table}</td>
+                            <td className="px-4 py-2 text-center">
+                              <span className={cn("font-bold", detail.imported > 0 ? "text-emerald-600" : "text-neutral-400")}>
+                                {detail.imported}
+                              </span>
+                            </td>
+                            <td className="px-4 py-2 text-center">
+                              <span className={cn("font-bold", detail.errors > 0 ? "text-red-600" : "text-neutral-400")}>
+                                {detail.errors}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              <Button onClick={() => setImportResult(null)} className="w-full bg-indigo-600 hover:bg-indigo-700">
+                Entendido
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      <ConfirmModal 
+        isOpen={isImportConfirmOpen}
+        onClose={() => {
+          setIsImportConfirmOpen(false);
+          setPendingFile(null);
+        }}
+        onConfirm={confirmImport}
+        title="Restaurar Backup"
+        message="Atenção: A importação irá adicionar os dados do backup à sua conta atual. Deseja continuar?"
+        confirmLabel="Sim, Importar"
+        cancelLabel="Cancelar"
+        variant="primary"
+      />
     </div>
   );
 }

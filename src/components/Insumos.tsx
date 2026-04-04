@@ -23,7 +23,8 @@ import {
   Info,
   History,
   ArrowUpRight,
-  ArrowDownRight
+  ArrowDownRight,
+  Save
 } from 'lucide-react';
 import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
@@ -33,6 +34,7 @@ import { CostService } from '../services/costService';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { supabase } from '../supabase';
+import { BackupService } from '../services/backupService';
 
 export function Insumos() {
   const { user } = useAuth();
@@ -44,8 +46,10 @@ export function Insumos() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [editingInsumo, setEditingInsumo] = React.useState<MateriaPrima | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
+  const [isExporting, setIsExporting] = React.useState(false);
 
   const [activeTab, setActiveTab] = React.useState<'INGREDIENTE' | 'EMBALAGEM'>('INGREDIENTE');
+  const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc' | 'none'>('none');
 
   // Form State
   const [formData, setFormData] = React.useState({
@@ -226,10 +230,30 @@ export function Insumos() {
     }
   };
 
-  const filteredInsumos = insumos.filter(i => 
-    i.nome.toLowerCase().includes(searchTerm.toLowerCase()) &&
-    (i.tipo || 'INGREDIENTE') === activeTab
-  );
+  const handleExport = async () => {
+    if (!user) return;
+    setIsExporting(true);
+    try {
+      await BackupService.exportData(user.id);
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const filteredInsumos = React.useMemo(() => {
+    let result = insumos.filter(i => 
+      i.nome.toLowerCase().includes(searchTerm.toLowerCase()) &&
+      (i.tipo || 'INGREDIENTE') === activeTab
+    );
+
+    if (sortOrder === 'asc') {
+      result = [...result].sort((a, b) => a.nome.localeCompare(b.nome));
+    } else if (sortOrder === 'desc') {
+      result = [...result].sort((a, b) => b.nome.localeCompare(a.nome));
+    }
+
+    return result;
+  }, [insumos, searchTerm, activeTab, sortOrder]);
 
   return (
     <div className="space-y-6">
@@ -239,6 +263,15 @@ export function Insumos() {
           <p className="text-neutral-500">Controle de ingredientes e embalagens</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
+          <Button 
+            variant="outline" 
+            onClick={handleExport}
+            disabled={isExporting}
+            className="w-full sm:w-auto border-neutral-200 text-neutral-600"
+          >
+            {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
+            Backup
+          </Button>
           <Button onClick={() => {
             setEditingInsumo(null);
             setFormData({
@@ -286,14 +319,31 @@ export function Insumos() {
         </button>
       </div>
 
-      <div className="relative max-w-md">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
-        <Input 
-          placeholder={`Buscar ${activeTab === 'INGREDIENTE' ? 'ingrediente' : 'embalagem'}...`} 
-          className="pl-10 bg-neutral-50 border-neutral-200"
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-        />
+      <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <div className="relative max-w-md w-full">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-neutral-400" />
+          <Input 
+            placeholder={`Buscar ${activeTab === 'INGREDIENTE' ? 'ingrediente' : 'embalagem'}...`} 
+            className="pl-10 bg-neutral-50 border-neutral-200"
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+          />
+        </div>
+        
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setSortOrder(prev => prev === 'asc' ? 'desc' : prev === 'desc' ? 'none' : 'asc')}
+            className={cn(
+              "h-10 px-4 border-neutral-200 text-neutral-600 font-medium whitespace-nowrap",
+              sortOrder !== 'none' && "bg-indigo-50 border-indigo-200 text-indigo-600"
+            )}
+          >
+            <TrendingUp className={cn("w-4 h-4 mr-2 transition-transform", sortOrder === 'desc' && "rotate-180")} />
+            {sortOrder === 'none' ? 'Ordenar A-Z' : sortOrder === 'asc' ? 'A-Z' : 'Z-A'}
+          </Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 gap-4 md:hidden">

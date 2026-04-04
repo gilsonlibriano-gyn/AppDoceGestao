@@ -156,6 +156,20 @@ export class DBService {
     if (error) throw error;
   }
 
+  async deleteAllByUid(table: string, uid: string): Promise<void> {
+    if (this.isGuest(uid)) {
+      this.setLocalData(table, []);
+      return;
+    }
+
+    const { error } = await supabase
+      .from(table)
+      .delete()
+      .eq('uid', uid);
+    
+    if (error) throw error;
+  }
+
   subscribe<T>(table: string, uid: string, callback: (data: T[]) => void) {
     if (this.isGuest(uid)) {
       // Initial fetch
