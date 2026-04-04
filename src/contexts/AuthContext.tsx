@@ -49,16 +49,28 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
     
     // Map 'admin' username to a real email for cloud sync
-    const targetEmail = email === 'admin' ? 'admin@deliciarte.com' : email;
-    // Supabase requires at least 6 characters. We append a suffix for the admin if needed.
-    const targetPassword = (email === 'admin' && password.length < 6) ? `${password}_admin` : password;
+    const isAdmin = email.toLowerCase() === 'admin';
+    const targetEmail = isAdmin ? 'admin@deliciarte.com' : email;
+    // Supabase requires at least 6 characters.
+    const targetPassword = (isAdmin && password === '1234') ? 'admin1234' : password;
 
     try {
       // Check if Supabase is properly configured
-      const isPlaceholder = supabase.auth.getSession === undefined || 
-                           (import.meta.env.VITE_SUPABASE_URL?.includes('placeholder'));
+      const isPlaceholder = !import.meta.env.VITE_SUPABASE_URL || 
+                           import.meta.env.VITE_SUPABASE_URL.includes('placeholder') ||
+                           !import.meta.env.VITE_SUPABASE_ANON_KEY ||
+                           import.meta.env.VITE_SUPABASE_ANON_KEY === 'placeholder';
       
       if (isPlaceholder) {
+        if (isAdmin && password === '1234') {
+          // Fallback to local admin if Supabase is not configured
+          setUser({ 
+            id: 'admin-local-id', 
+            email: 'admin@deliciarte.com',
+            user_metadata: { full_name: 'Administrador (Local)' }
+          } as any);
+          return;
+        }
         throw new Error('CONFIG_MISSING');
       }
 
@@ -67,8 +79,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         password: targetPassword,
       });
 
-      // If it's the admin and it doesn't exist yet, try to auto-create it (one-time setup)
-      if (error && email === 'admin' && (error.message === 'Invalid login credentials' || error.status === 400)) {
+      // If it's the admin and it doesn't exist yet, try to auto-create it
+      if (error && isAdmin && (error.message.includes('Invalid login credentials') || error.status === 400 || error.status === 401)) {
         const { error: signUpError } = await supabase.auth.signUp({
           email: targetEmail,
           password: targetPassword,
@@ -81,7 +93,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             email: targetEmail, 
             password: targetPassword 
           });
-          if (secondSignInError) throw secondSignInError;
+          
+          if (secondSignInError) {
+            // If it still fails (e.g. email confirmation required), allow local access for admin
+            if (isAdmin && password === '1234') {
+              setUser({ 
+                id: 'admin-temp-id', 
+                email: 'admin@deliciarte.com',
+                user_metadata: { full_name: 'Administrador (Sincronização Pendente)' }
+              } as any);
+              return;
+            }
+            throw secondSignInError;
+          }
           return;
         }
         throw signUpError;
@@ -90,18 +114,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
     } catch (err: any) {
       console.error("Login error:", err);
+      const errorMsg = err.message || String(err);
       let message = "Erro ao entrar. Verifique seu e-mail e senha.";
       
-      if (err.message === 'CONFIG_MISSING') {
-        message = "Configuração do Supabase ausente. Por favor, adicione as chaves VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no painel de Segredos (Secrets).";
-      } else if (err.message === 'Invalid login credentials') {
+      if (errorMsg.includes('CONFIG_MISSING')) {
+        message = "Configuração do Supabase ausente. Adicione as chaves VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no painel de Segredos (Secrets).";
+      } else if (errorMsg.includes('Invalid login credentials')) {
         message = "E-mail ou senha incorretos. Verifique os dados ou cadastre-se.";
-      } else if (err.message === 'Email not confirmed') {
-        message = "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
-      } else if (err.message?.includes('at least 6 characters')) {
+      } else if (errorMsg.includes('Email not confirmed')) {
+        message = "E-mail ainda não confirmado. Verifique sua caixa de entrada ou desative a confirmação no Supabase.";
+      } else if (errorMsg.includes('at least 6 characters')) {
         message = "A senha deve ter pelo menos 6 caracteres.";
       } else if (err.status === 429) {
         message = "Muitas tentativas. Tente novamente em alguns minutos.";
+      } else {
+        // Show the actual error for better debugging if it's unknown
+        message = `Erro: ${errorMsg}`;
       }
       
       setError(message);
