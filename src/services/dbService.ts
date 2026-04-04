@@ -1,11 +1,10 @@
 import { supabase } from '../supabase';
 
 const GUEST_UID = '00000000-0000-0000-0000-000000000000';
-const ADMIN_UID = 'admin-0000-0000-0000-000000000000';
 
 export class DBService {
   private isGuest(uid: string) {
-    return uid === GUEST_UID || uid === ADMIN_UID;
+    return uid === GUEST_UID;
   }
 
   private generateId() {

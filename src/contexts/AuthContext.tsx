@@ -23,24 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const ADMIN_USER: User = {
-    id: 'admin-0000-0000-0000-000000000000',
-    email: 'admin@deliciarte.com',
-    user_metadata: { full_name: 'Administrador' },
-    app_metadata: {},
-    aud: 'authenticated',
-    created_at: new Date().toISOString(),
-  } as User;
-
   useEffect(() => {
-    // Check local storage for mock admin session
-    const localUser = localStorage.getItem('deliciarte_logged_user');
-    if (localUser === 'admin') {
-      setUser(ADMIN_USER);
-      setLoading(false);
-      return;
-    }
-
     // Check active sessions and sets the user if available
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
@@ -53,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
         setUser(session.user);
-      } else if (!localStorage.getItem('deliciarte_logged_user')) {
+      } else {
         setUser(null);
       }
       setLoading(false);
@@ -65,18 +48,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signIn = async (email: string, password: string) => {
     setError(null);
     
-    // Check for admin login
-    if (email === 'admin' && password === '1234') {
-      setUser(ADMIN_USER);
-      localStorage.setItem('deliciarte_logged_user', 'admin');
-      return;
-    }
+    // Map 'admin' username to a real email for cloud sync
+    const targetEmail = email === 'admin' ? 'admin@deliciarte.com' : email;
 
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: targetEmail,
         password,
       });
+
+      // If it's the admin and it doesn't exist yet, try to auto-create it (one-time setup)
+      if (error && email === 'admin' && error.message === 'Invalid login credentials') {
+        const { error: signUpError } = await supabase.auth.signUp({
+          email: targetEmail,
+          password,
+          options: { data: { full_name: 'Administrador' } }
+        });
+        
+        if (!signUpError) {
+          // Try sign in again after sign up
+          const { error: secondSignInError } = await supabase.auth.signInWithPassword({ 
+            email: targetEmail, 
+            password 
+          });
+          if (secondSignInError) throw secondSignInError;
+          return;
+        }
+        throw signUpError;
+      }
+
       if (error) throw error;
     } catch (err: any) {
       console.error("Login error:", err);
@@ -107,7 +107,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      localStorage.removeItem('deliciarte_logged_user');
       await supabase.auth.signOut();
       setUser(null);
     } catch (error) {
