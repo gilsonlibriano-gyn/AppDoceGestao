@@ -127,11 +127,6 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </button>
           </div>
 
-          <div className="mt-8 pt-6 border-t border-neutral-100 text-center">
-            <p className="text-xs text-neutral-400">
-              Dica: Use <b>admin</b> e senha <b>1234</b> para acesso rápido.
-            </p>
-          </div>
         </div>
       </div>
     );
@@ -157,10 +152,24 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar (Desktop & Mobile Overlay) */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-40 w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        "fixed inset-y-0 left-0 z-[60] w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-full flex flex-col">
+          {/* Mobile Sidebar Header */}
+          <div className="flex md:hidden items-center justify-between px-6 py-4 border-b">
+            <div className="flex items-center gap-2">
+              <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
+              <span className="font-bold text-neutral-900">Doce Gestão</span>
+            </div>
+            <button 
+              onClick={() => setIsSidebarOpen(false)}
+              className="p-2 text-neutral-500 hover:bg-neutral-100 rounded-lg"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
           <div className="hidden md:flex items-center gap-3 px-6 py-8">
             <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-orange-100 overflow-hidden border border-neutral-100">
               <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
@@ -224,21 +233,21 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/20 backdrop-blur-sm z-30 md:hidden"
+          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
 
       {/* Main Content */}
       <main className="flex-1 overflow-x-hidden">
-        <div className="max-w-7xl mx-auto p-4 md:p-8">
+        <div className="max-w-7xl mx-auto p-4 md:p-8 pb-24 md:pb-8">
           {children}
         </div>
       </main>
 
       {/* Mobile Bottom Navigation */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex items-center justify-around px-2 py-2 z-50">
-        {navItems.slice(0, 5).map((item) => {
+        {navItems.slice(0, 4).map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Link
@@ -254,6 +263,13 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </Link>
           );
         })}
+        <button
+          onClick={() => setIsSidebarOpen(true)}
+          className="flex flex-col items-center gap-1 px-3 py-1 rounded-lg text-neutral-500"
+        >
+          <Menu className="w-5 h-5" />
+          <span className="text-[10px] font-medium">Menu</span>
+        </button>
       </nav>
     </div>
   );
