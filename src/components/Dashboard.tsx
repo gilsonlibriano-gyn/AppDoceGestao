@@ -19,18 +19,20 @@ import {
 import { Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { formatCurrency, cn } from '../lib/utils';
 import { 
-  BarChart, 
   Bar, 
+  Line,
   XAxis, 
   YAxis, 
   CartesianGrid, 
   Tooltip, 
-  ResponsiveContainer 
+  ResponsiveContainer,
+  ComposedChart,
+  ReferenceLine
 } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { supabase } from '../supabase';
-import { MateriaPrima, Receita, CustoFixo, BemDepreciavel, Configuracoes } from '../types';
+import { MateriaPrima, Receita, CustoFixo, BemDepreciavel, Configuracoes, BaseReceita } from '../types';
 import { CostService } from '../services/costService';
 
 export function Dashboard() {
@@ -45,6 +47,7 @@ export function Dashboard() {
   });
   const [chartData, setChartData] = React.useState<any[]>([]);
   const [config, setConfig] = React.useState<Configuracoes | null>(null);
+  const [receitasBase, setReceitasBase] = React.useState<BaseReceita[]>([]);
 
   React.useEffect(() => {
     if (!user) return;
@@ -55,7 +58,14 @@ export function Dashboard() {
       }
     });
 
-    return () => unsubConfig();
+    const unsubReceitasBase = dbService.subscribe<BaseReceita>('receitas_base', user.id, (data) => {
+      setReceitasBase(data);
+    });
+
+    return () => {
+      unsubConfig();
+      unsubReceitasBase();
+    };
   }, [user]);
 
   React.useEffect(() => {
@@ -87,16 +97,18 @@ export function Dashboard() {
               config,
               state.custos,
               state.bens,
-              r.lucroPretendidoPercentual || 30,
+              r.lucroPretendidoPercentual || config.lucroPretendidoPercentual || 30,
               r.outrasDespesas || 0,
-              0 // producaoMensal padrão para o dashboard
+              0, // producaoMensal padrão para o dashboard
+              receitasBase
             );
             price = pricing.precoVendaSugerido;
             margin = pricing.margemLucroPercentual;
           } else {
-            const markup = 1 - 0.3 - 0.05;
+            const defaultMargin = 30;
+            const markup = 1 - (defaultMargin / 100) - 0.05;
             price = cost / markup;
-            margin = 30;
+            margin = defaultMargin;
           }
 
           totalMargem += margin;
@@ -161,15 +173,20 @@ export function Dashboard() {
     };
   }, [user, config]);
 
+  const goal = config?.lucroPretendidoPercentual || 30;
+  const isAtOrAboveGoal = stats.margemMedia >= goal;
+  const isExactlyGoal = Math.abs(stats.margemMedia - goal) < 0.1;
+
   const statCards = [
     { 
       label: 'Margem Média', 
       value: `${stats.margemMedia.toFixed(1)}%`, 
       icon: TrendingUp, 
-      trend: stats.margemMedia > 30 ? '+ Saudável' : 'Abaixo do ideal', 
-      trendUp: stats.margemMedia > 30,
-      color: 'text-emerald-600',
-      bg: 'bg-emerald-50'
+      trend: isExactlyGoal ? 'Na meta' : (isAtOrAboveGoal ? '+ Saudável' : 'Abaixo do ideal'), 
+      trendUp: isAtOrAboveGoal,
+      color: isAtOrAboveGoal ? 'text-emerald-600' : 'text-amber-600',
+      bg: isAtOrAboveGoal ? 'bg-emerald-50' : 'bg-amber-50',
+      subValue: `Meta: ${goal}%`
     },
     { 
       label: 'Insumos Cadastrados', 
@@ -181,10 +198,10 @@ export function Dashboard() {
       bg: 'bg-blue-50'
     },
     { 
-      label: 'Produtos Cadastrados', 
+      label: 'Fichas Técnicas Cadastradas', 
       value: stats.receitasCount.toString(), 
       icon: ChefHat, 
-      trend: `${stats.receitasCount} receitas`, 
+      trend: `${stats.receitasCount} fichas`, 
       trendUp: true,
       color: 'text-amber-600',
       bg: 'bg-amber-50'
@@ -234,7 +251,14 @@ export function Dashboard() {
               </div>
               <div className="mt-4">
                 <p className="text-sm text-neutral-500 font-medium">{stat.label}</p>
-                <p className="text-2xl font-bold text-neutral-900 mt-1">{stat.value}</p>
+                <div className="flex items-baseline gap-2">
+                  <p className="text-2xl font-bold text-neutral-900 mt-1">{stat.value}</p>
+                  {stat.subValue && (
+                    <span className="text-[10px] font-medium text-neutral-400 uppercase tracking-wider">
+                      {stat.subValue}
+                    </span>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -245,7 +269,7 @@ export function Dashboard() {
         <Card className="lg:col-span-2">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
-              <h3 className="font-bold text-neutral-900">Margem por Produto</h3>
+              <h3 className="font-bold text-neutral-900">Margem por Ficha Técnica</h3>
               <p className="text-sm text-neutral-500">Comparativo de custo vs preço de venda</p>
             </div>
             <div className="hidden sm:flex items-center gap-4 text-xs">
@@ -257,12 +281,20 @@ export function Dashboard() {
                 <div className="w-3 h-3 bg-neutral-200 rounded-full" />
                 <span>Custo</span>
               </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-0.5 bg-indigo-500" />
+                <span>Margem %</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <div className="w-3 h-0.5 bg-indigo-500 border-t border-dashed border-indigo-500" />
+                <span>Meta</span>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             <div className="h-[300px] w-full">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f5f5f5" />
                   <XAxis 
                     dataKey="name" 
@@ -272,9 +304,18 @@ export function Dashboard() {
                     dy={10}
                   />
                   <YAxis 
+                    yAxisId="left"
                     axisLine={false} 
                     tickLine={false} 
                     tick={{ fill: '#737373', fontSize: 10 }} 
+                  />
+                  <YAxis 
+                    yAxisId="right"
+                    orientation="right"
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fill: '#737373', fontSize: 10 }} 
+                    unit="%"
                   />
                   <Tooltip 
                     cursor={{ fill: '#fafafa' }}
@@ -289,9 +330,31 @@ export function Dashboard() {
                       name === 'custo' ? 'Custo' : name === 'preco' ? 'Preço' : 'Margem'
                     ]}
                   />
-                  <Bar dataKey="custo" fill="#e5e5e5" radius={[4, 4, 0, 0]} barSize={24} />
-                  <Bar dataKey="preco" fill="#f97316" radius={[4, 4, 0, 0]} barSize={24} />
-                </BarChart>
+                  <Bar yAxisId="left" dataKey="custo" fill="#e5e5e5" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Bar yAxisId="left" dataKey="preco" fill="#f97316" radius={[4, 4, 0, 0]} barSize={24} />
+                  <Line 
+                    yAxisId="right" 
+                    type="monotone" 
+                    dataKey="margem" 
+                    stroke="#6366f1" 
+                    strokeWidth={2} 
+                    dot={{ fill: '#6366f1', r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <ReferenceLine 
+                    yAxisId="right" 
+                    y={goal} 
+                    stroke="#6366f1" 
+                    strokeDasharray="3 3" 
+                    label={{ 
+                      value: `Meta ${goal}%`, 
+                      position: 'insideTopRight', 
+                      fill: '#6366f1', 
+                      fontSize: 10,
+                      fontWeight: 'bold'
+                    }} 
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </div>
           </CardContent>
@@ -331,9 +394,12 @@ export function Dashboard() {
                 <span className="font-bold text-neutral-900 text-sm">Saúde Financeira</span>
               </div>
               <p className="text-sm font-medium text-neutral-600">
-                {stats.margemMedia >= (config?.lucroPretendidoPercentual || 30) 
-                  ? "Sua margem média está acima da meta definida. Ótimo!" 
-                  : "Sua margem média está abaixo da meta. Revise seus preços."}
+                {isExactlyGoal 
+                  ? "Sua margem média está exatamente na meta. Bom trabalho!" 
+                  : (stats.margemMedia > goal 
+                    ? "Sua margem média está acima da meta definida. Ótimo!" 
+                    : "Sua margem média está abaixo da meta. Revise seus preços.")
+                }
               </p>
             </div>
           </CardContent>

@@ -27,7 +27,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
-import { formatCurrency, cn, formatNumber } from '../lib/utils';
+import { formatCurrency, cn, formatNumber, cleanNumericInput } from '../lib/utils';
 import { MateriaPrima } from '../types';
 import { CostService } from '../services/costService';
 import { useAuth } from '../contexts/AuthContext';
@@ -54,7 +54,7 @@ export function Insumos() {
     unidadeMedida: 'g',
     pesoEmbalagem: '',
     valorEmbalagem: '',
-    preco: '0',
+    preco: '',
     fatorCorrecao: '1',
     fornecedor: '',
     tipo: 'INGREDIENTE' as 'INGREDIENTE' | 'EMBALAGEM',
@@ -75,14 +75,15 @@ export function Insumos() {
   }, [formData.pesoEmbalagem, formData.valorEmbalagem, formData.fatorCorrecao]);
 
   const handleInputChange = (field: string, value: string) => {
+    const cleanedValue = cleanNumericInput(value);
     setFormData(prev => {
-      const newState = { ...prev, [field]: value };
+      const newState = { ...prev, [field]: cleanedValue };
       
       // Automatic calculations based on what changed
       if (field === 'quantidadeItens' || field === 'pesoUnitario' || field === 'valorUnitario') {
-        const qty = parseFloat(field === 'quantidadeItens' ? value : prev.quantidadeItens) || 0;
-        const pUnit = parseFloat(field === 'pesoUnitario' ? value : prev.pesoUnitario) || 0;
-        const vUnit = parseFloat(field === 'valorUnitario' ? value : prev.valorUnitario) || 0;
+        const qty = parseFloat(field === 'quantidadeItens' ? cleanedValue : prev.quantidadeItens) || 0;
+        const pUnit = parseFloat(field === 'pesoUnitario' ? cleanedValue : prev.pesoUnitario) || 0;
+        const vUnit = parseFloat(field === 'valorUnitario' ? cleanedValue : prev.valorUnitario) || 0;
 
         if (qty > 0) {
           if (field === 'quantidadeItens' || field === 'pesoUnitario') {

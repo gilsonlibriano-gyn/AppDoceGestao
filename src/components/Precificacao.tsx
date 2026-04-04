@@ -21,12 +21,13 @@ import { formatCurrency, formatPercent, cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { supabase } from '../supabase';
-import { Receita, CustoFixo, Depreciacao, Configuracoes as ConfiguracoesType } from '../types';
+import { Receita, CustoFixo, Depreciacao, Configuracoes as ConfiguracoesType, BaseReceita } from '../types';
 import { CostService } from '../services/costService';
 
 export function Precificacao() {
   const { user } = useAuth();
   const [receitas, setReceitas] = React.useState<Receita[]>([]);
+  const [receitasBase, setReceitasBase] = React.useState<BaseReceita[]>([]);
   const [custosFixos, setCustosFixos] = React.useState<CustoFixo[]>([]);
   const [depreciacoes, setDepreciacoes] = React.useState<Depreciacao[]>([]);
   const [config, setConfig] = React.useState<ConfiguracoesType | null>(null);
@@ -67,6 +68,10 @@ export function Precificacao() {
       }
     });
 
+    const unsubReceitasBase = dbService.subscribe<BaseReceita>('receitas_base', user.id, (data) => {
+      setReceitasBase(data);
+    });
+
     const unsubCustos = dbService.subscribe<CustoFixo>('custos_fixos', user.id, (data) => {
       setCustosFixos(data.sort((a, b) => (a.ordem || 0) - (b.ordem || 0)));
     });
@@ -79,6 +84,7 @@ export function Precificacao() {
     return () => {
       unsubConfig();
       unsubReceitas();
+      unsubReceitasBase();
       unsubCustos();
       unsubDepr();
     };
@@ -87,11 +93,11 @@ export function Precificacao() {
   const selectedReceita = receitas.find(r => r.id === selectedReceitaId);
 
   React.useEffect(() => {
-    if (selectedReceita) {
-      setProfitMargin(selectedReceita.lucroPretendidoPercentual || 30);
+    if (selectedReceita && config) {
+      setProfitMargin(selectedReceita.lucroPretendidoPercentual || config.lucroPretendidoPercentual || 30);
       setOutrasDespesasVariaveis(0); // Inicia em zero pois as despesas da receita já estão no custo base
     }
-  }, [selectedReceitaId]);
+  }, [selectedReceitaId, config, selectedReceita]);
 
   // Vamos buscar os insumos também para garantir precisão total no recalculo
   const [insumos, setInsumos] = React.useState<any[]>([]);
@@ -111,7 +117,8 @@ export function Precificacao() {
     depreciacoes,
     profitMargin,
     outrasDespesasVariaveis,
-    producaoMensal
+    producaoMensal,
+    receitasBase
   ) : null;
 
   if (loading || !config) {
@@ -129,9 +136,9 @@ export function Precificacao() {
         <div className="w-16 h-16 bg-indigo-100 rounded-full flex items-center justify-center text-indigo-500">
           <AlertCircle className="w-8 h-8" />
         </div>
-        <h2 className="text-xl font-bold text-neutral-900">Nenhuma receita encontrada</h2>
+        <h2 className="text-xl font-bold text-neutral-900">Nenhuma ficha técnica encontrada</h2>
         <p className="text-neutral-500 max-w-md">
-          Você precisa cadastrar pelo menos uma receita para poder calcular o preço de venda.
+          Você precisa cadastrar pelo menos uma ficha técnica para poder calcular o preço de venda.
         </p>
       </div>
     );
@@ -156,7 +163,7 @@ export function Precificacao() {
             
             <CardContent className="space-y-6">
               <div>
-                <Label>Produto de Referência</Label>
+                <Label>Ficha Técnica de Referência</Label>
                 <select 
                   className="flex h-11 w-full rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500/20 transition-all"
                   value={selectedReceitaId}

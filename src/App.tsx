@@ -9,6 +9,7 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './components/Dashboard';
 import { Insumos } from './components/Insumos';
 import { Receitas } from './components/Receitas';
+import { FichasTecnicas } from './components/FichasTecnicas';
 import { Precificacao } from './components/Precificacao';
 import { Configuracoes } from './components/Configuracoes';
 import { CustosFixos } from './components/CustosFixos';
@@ -24,6 +25,7 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/insumos" element={<Insumos />} />
             <Route path="/receitas" element={<Receitas />} />
+            <Route path="/fichas-tecnicas" element={<FichasTecnicas />} />
             <Route path="/custos-fixos" element={<CustosFixos />} />
             <Route path="/depreciacao" element={<Depreciacao />} />
             <Route path="/precificacao" element={<Precificacao />} />

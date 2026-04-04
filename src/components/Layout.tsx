@@ -28,6 +28,7 @@ const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Package, label: 'Insumos', path: '/insumos' },
   { icon: ChefHat, label: 'Receitas', path: '/receitas' },
+  { icon: ChefHat, label: 'Fichas Técnicas', path: '/fichas-tecnicas' },
   { icon: Wallet, label: 'Custos Fixos', path: '/custos-fixos' },
   { icon: TrendingUp, label: 'Depreciação', path: '/depreciacao' },
   { icon: Calculator, label: 'Precificação', path: '/precificacao' },

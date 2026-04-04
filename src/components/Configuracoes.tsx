@@ -18,7 +18,7 @@ import {
   Trash2
 } from 'lucide-react';
 import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
-import { formatCurrency } from '../lib/utils';
+import { formatCurrency, cleanNumericInput } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { supabase } from '../supabase';
@@ -31,11 +31,11 @@ export function Configuracoes() {
   const [isSaving, setIsSaving] = React.useState(false);
   const [showSuccess, setShowSuccess] = React.useState(false);
 
-  const [settings, setSettings] = React.useState<ConfiguracoesType>({
-    diasTrabalhadosMes: 22,
-    horasTrabalhadasDia: 8,
-    valorMensalPretendido: 1800,
-    custoKwh: 0.91,
+  const [settings, setSettings] = React.useState<any>({
+    diasTrabalhadosMes: '22',
+    horasTrabalhadasDia: '8',
+    valorMensalPretendido: '1800',
+    custoKwh: '0.91',
     equipamentos: [
       { id: '1', nome: 'Liquidificador', potenciaW: 700 },
       { id: '2', nome: 'Batedeira', potenciaW: 750 },
@@ -44,22 +44,22 @@ export function Configuracoes() {
       { id: '5', nome: 'Micro-ondas', potenciaW: 500 },
     ],
     tipoBotijao: 'P13',
-    valorBotijao: 115,
-    taxaImpostos: 5,
-    lucroPretendidoPercentual: 30,
+    valorBotijao: '115',
+    taxaImpostos: '5',
+    lucroPretendidoPercentual: '30',
     uid: ''
   });
 
-  const [newEquip, setNewEquip] = React.useState({ nome: '', potenciaW: 0 });
+  const [newEquip, setNewEquip] = React.useState({ nome: '', potenciaW: '' });
 
   const addEquipamento = () => {
-    if (!newEquip.nome || newEquip.potenciaW <= 0) return;
+    if (!newEquip.nome || parseFloat(newEquip.potenciaW) <= 0) return;
     const id = Math.random().toString(36).substr(2, 9);
     setSettings({
       ...settings,
-      equipamentos: [...settings.equipamentos, { ...newEquip, id }]
+      equipamentos: [...settings.equipamentos, { ...newEquip, potenciaW: parseFloat(newEquip.potenciaW), id }]
     });
-    setNewEquip({ nome: '', potenciaW: 0 });
+    setNewEquip({ nome: '', potenciaW: '' });
   };
 
   const removeEquipamento = (id: string) => {
@@ -82,6 +82,13 @@ export function Configuracoes() {
           setSettings({
             ...settings,
             ...data,
+            diasTrabalhadosMes: data.diasTrabalhadosMes.toString(),
+            horasTrabalhadasDia: data.horasTrabalhadasDia.toString(),
+            valorMensalPretendido: data.valorMensalPretendido.toString(),
+            custoKwh: data.custoKwh.toString(),
+            valorBotijao: data.valorBotijao.toString(),
+            taxaImpostos: data.taxaImpostos.toString(),
+            lucroPretendidoPercentual: data.lucroPretendidoPercentual.toString(),
             uid: user.id
           });
         }
@@ -102,6 +109,13 @@ export function Configuracoes() {
 
       const data = {
         ...settings,
+        diasTrabalhadosMes: parseFloat(settings.diasTrabalhadosMes) || 0,
+        horasTrabalhadasDia: parseFloat(settings.horasTrabalhadasDia) || 0,
+        valorMensalPretendido: parseFloat(settings.valorMensalPretendido) || 0,
+        custoKwh: parseFloat(settings.custoKwh) || 0,
+        valorBotijao: parseFloat(settings.valorBotijao) || 0,
+        taxaImpostos: parseFloat(settings.taxaImpostos) || 0,
+        lucroPretendidoPercentual: parseFloat(settings.lucroPretendidoPercentual) || 0,
         uid: user.id,
         updatedAt: new Date().toISOString()
       };
@@ -156,7 +170,7 @@ export function Configuracoes() {
                 <Input 
                   type="number" 
                   value={settings.diasTrabalhadosMes} 
-                  onChange={(e) => setSettings({ ...settings, diasTrabalhadosMes: Number(e.target.value) })}
+                  onChange={(e) => setSettings({ ...settings, diasTrabalhadosMes: cleanNumericInput(e.target.value) })}
                 />
               </div>
 
@@ -165,7 +179,7 @@ export function Configuracoes() {
                 <Input 
                   type="number" 
                   value={settings.horasTrabalhadasDia} 
-                  onChange={(e) => setSettings({ ...settings, horasTrabalhadasDia: Number(e.target.value) })}
+                  onChange={(e) => setSettings({ ...settings, horasTrabalhadasDia: cleanNumericInput(e.target.value) })}
                 />
               </div>
 
@@ -176,7 +190,7 @@ export function Configuracoes() {
                   <Input 
                     type="number" 
                     value={settings.valorMensalPretendido} 
-                    onChange={(e) => setSettings({ ...settings, valorMensalPretendido: Number(e.target.value) })}
+                    onChange={(e) => setSettings({ ...settings, valorMensalPretendido: cleanNumericInput(e.target.value) })}
                     className="pl-12" 
                   />
                 </div>
@@ -224,7 +238,7 @@ export function Configuracoes() {
                     <Input 
                       type="number" 
                       value={settings.valorBotijao} 
-                      onChange={(e) => setSettings({ ...settings, valorBotijao: Number(e.target.value) })}
+                      onChange={(e) => setSettings({ ...settings, valorBotijao: cleanNumericInput(e.target.value) })}
                       className="pl-12" 
                     />
                   </div>
@@ -271,7 +285,7 @@ export function Configuracoes() {
                     type="number" 
                     step="0.01"
                     value={settings.custoKwh} 
-                    onChange={(e) => setSettings({ ...settings, custoKwh: Number(e.target.value) })}
+                    onChange={(e) => setSettings({ ...settings, custoKwh: cleanNumericInput(e.target.value) })}
                     className="pl-12" 
                   />
                 </div>
@@ -292,8 +306,8 @@ export function Configuracoes() {
                     <Input 
                       type="number" 
                       placeholder="W" 
-                      value={newEquip.potenciaW || ''}
-                      onChange={(e) => setNewEquip({ ...newEquip, potenciaW: Number(e.target.value) })}
+                      value={newEquip.potenciaW}
+                      onChange={(e) => setNewEquip({ ...newEquip, potenciaW: cleanNumericInput(e.target.value) })}
                     />
                   </div>
                   <Button size="sm" onClick={addEquipamento} className="h-11">Add</Button>
@@ -363,7 +377,7 @@ export function Configuracoes() {
                 <Input 
                   type="number" 
                   value={settings.taxaImpostos} 
-                  onChange={(e) => setSettings({ ...settings, taxaImpostos: Number(e.target.value) })}
+                  onChange={(e) => setSettings({ ...settings, taxaImpostos: cleanNumericInput(e.target.value) })}
                 />
               </div>
 
@@ -372,7 +386,7 @@ export function Configuracoes() {
                 <Input 
                   type="number" 
                   value={settings.lucroPretendidoPercentual} 
-                  onChange={(e) => setSettings({ ...settings, lucroPretendidoPercentual: Number(e.target.value) })}
+                  onChange={(e) => setSettings({ ...settings, lucroPretendidoPercentual: cleanNumericInput(e.target.value) })}
                 />
                 <p className="text-[10px] text-neutral-400 mt-1 italic">Usado como base para novos produtos e no dashboard.</p>
               </div>

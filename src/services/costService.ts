@@ -10,12 +10,24 @@ import {
   Depreciacao, 
   Configuracoes,
   PricingResults,
-  BreakEvenResults
+  BreakEvenResults,
+  BaseReceita
 } from "../types";
 
 export class CostService {
   static calculateUnitCostMP(mp: MateriaPrima): number {
     return Number(mp.preco) || 0;
+  }
+
+  static calculateBaseReceitaCost(receita: BaseReceita, materiasPrimas: MateriaPrima[]): number {
+    let total = 0;
+    (receita.ingredientes || []).forEach(item => {
+      const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
+      if (mp) {
+        total += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
+      }
+    });
+    return total;
   }
 
   static calculateDepreciationMonthly(bem: Depreciacao): number {
@@ -69,7 +81,12 @@ export class CostService {
     return (custoPorHora / 60) * (Number(tempoMinutos) || 0);
   }
 
-  static calculateRecipeCost(receita: Receita, materiasPrimas: MateriaPrima[], config: Configuracoes): {
+  static calculateRecipeCost(
+    receita: Receita, 
+    materiasPrimas: MateriaPrima[], 
+    config: Configuracoes,
+    receitasBase: BaseReceita[] = []
+  ): {
     ingredientes: number;
     embalagens: number;
     maoDeObra: number;
@@ -82,9 +99,18 @@ export class CostService {
     let embalagens = 0;
 
     (receita.ingredientes || []).forEach(item => {
-      const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
-      if (mp) {
-        ingredientes += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
+      if (item.materiaPrimaId) {
+        const mp = materiasPrimas.find(m => m.id === item.materiaPrimaId);
+        if (mp) {
+          ingredientes += this.calculateUnitCostMP(mp) * (Number(item.quantidade) || 0);
+        }
+      } else if (item.receitaBaseId) {
+        const rb = receitasBase.find(r => r.id === item.receitaBaseId);
+        if (rb) {
+          const rbCost = this.calculateBaseReceitaCost(rb, materiasPrimas);
+          const unitCost = rb.rendimento > 0 ? rbCost / rb.rendimento : 0;
+          ingredientes += unitCost * (Number(item.quantidade) || 0);
+        }
       }
     });
 
@@ -130,9 +156,10 @@ export class CostService {
     bens: Depreciacao[],
     targetProfitMargin: number,
     outrasDespesasVariaveis: number = 0,
-    producaoMensalDesejada: number = 0
+    producaoMensalDesejada: number = 0,
+    receitasBase: BaseReceita[] = []
   ): PricingResults {
-    const breakdown = this.calculateRecipeCost(receita, materiasPrimas, config);
+    const breakdown = this.calculateRecipeCost(receita, materiasPrimas, config, receitasBase);
     
     // Custo MP e Embalagens Unitário
     const custoMPUnitario = receita.rendimento > 0 ? breakdown.ingredientes / receita.rendimento : 0;
@@ -212,7 +239,8 @@ export class CostService {
     materiasPrimas: MateriaPrima[],
     config: Configuracoes,
     custosFixos: CustoFixo[],
-    bens: Depreciacao[]
+    bens: Depreciacao[],
+    receitasBase: BaseReceita[] = []
   ): BreakEvenResults {
     const totalCF = custosFixos.reduce((total, cf) => total + cf.valor, 0);
     const totalDepreciation = this.calculateTotalDepreciationMonthly(bens);
@@ -224,7 +252,10 @@ export class CostService {
       config, 
       custosFixos, 
       bens, 
-      30 // margem de lucro padrão
+      receitaRef.lucroPretendidoPercentual || config.lucroPretendidoPercentual || 30,
+      0,
+      0,
+      receitasBase
     );
 
     const taxDecimal = (config.taxaImpostos || 0) / 100;

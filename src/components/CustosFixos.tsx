@@ -17,7 +17,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Label, Card, CardHeader, CardContent } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
-import { formatCurrency, cn } from '../lib/utils';
+import { formatCurrency, cn, cleanNumericInput } from '../lib/utils';
 import { CustoFixo } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -130,7 +130,7 @@ export function CustosFixos() {
   // Form state
   const [formData, setFormData] = React.useState({
     nome: '',
-    valor: 0
+    valor: ''
   });
 
   const sensors = useSensors(
@@ -198,10 +198,10 @@ export function CustosFixos() {
   const handleOpenModal = (custo?: CustoFixo) => {
     if (custo) {
       setEditingCusto(custo);
-      setFormData({ nome: custo.nome, valor: custo.valor });
+      setFormData({ nome: custo.nome, valor: custo.valor.toString() });
     } else {
       setEditingCusto(null);
-      setFormData({ nome: '', valor: 0 });
+      setFormData({ nome: '', valor: '' });
     }
     setIsModalOpen(true);
   };
@@ -214,6 +214,7 @@ export function CustosFixos() {
     try {
       const data = {
         ...formData,
+        valor: parseFloat(formData.valor) || 0,
         uid: user.id,
         updatedAt: new Date().toISOString()
       };
@@ -442,7 +443,7 @@ export function CustosFixos() {
                   required 
                   placeholder="0,00"
                   value={formData.valor}
-                  onChange={(e) => setFormData({ ...formData, valor: Number(e.target.value) })}
+                  onChange={(e) => setFormData({ ...formData, valor: cleanNumericInput(e.target.value) })}
                 />
               </div>
 

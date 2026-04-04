@@ -23,9 +23,25 @@ export interface MateriaPrima {
 }
 
 export interface IngredienteReceita {
-  materiaPrimaId: string;
+  materiaPrimaId?: string;
+  receitaBaseId?: string;
   quantidade: number;
   unidade: string;
+}
+
+export interface BaseReceita {
+  id?: string;
+  nome: string;
+  ingredientes: {
+    materiaPrimaId: string;
+    quantidade: number;
+    unidade: string;
+  }[];
+  modoPreparo: string;
+  rendimento: number;
+  uid: string;
+  createdAt?: any;
+  updatedAt?: any;
 }
 
 export interface EquipamentoUso {
@@ -50,6 +66,7 @@ export interface Receita {
   usoGas: GasUso[];
   outrasDespesas: number;
   outrasDespesasObs: string;
+  modoPreparo: string;
   lucroPretendidoPercentual: number;
   custoTotal: number;
   uid: string;

@@ -31,3 +31,9 @@ export function formatPercent(value: number): string {
     maximumFractionDigits: 2,
   }).format(value / 100);
 }
+
+export function cleanNumericInput(value: string): string {
+  // Remove leading zeros only if followed by another digit (not a dot)
+  // e.g., "02" -> "2", "0.2" -> "0.2", "0" -> "0"
+  return value.replace(/^0+(?=\d)/, '');
+}

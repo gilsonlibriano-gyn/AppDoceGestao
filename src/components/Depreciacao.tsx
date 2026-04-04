@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 import { Button, Input, Label, Card, CardHeader, CardContent, Badge } from './ui/Common';
 import { ConfirmModal } from './ui/ConfirmModal';
-import { formatCurrency, cn } from '../lib/utils';
+import { formatCurrency, cn, cleanNumericInput } from '../lib/utils';
 import { BemDepreciavel } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
@@ -45,10 +45,10 @@ export function Depreciacao() {
   // Form state
   const [formData, setFormData] = React.useState({
     nome: '',
-    valor: 0,
-    vidaUtil: 120,
+    valor: '',
+    vidaUtil: '120',
     dataCompra: new Date().toISOString().split('T')[0],
-    taxaAnual: 10,
+    taxaAnual: '10',
     categoria: 'Máquinas e Equipamentos'
   });
 
@@ -73,20 +73,20 @@ export function Depreciacao() {
       setEditingBem(bem);
       setFormData({ 
         nome: bem.nome, 
-        valor: bem.valor,
-        vidaUtil: bem.vidaUtil,
+        valor: bem.valor.toString(),
+        vidaUtil: bem.vidaUtil.toString(),
         dataCompra: bem.dataCompra,
-        taxaAnual: (bem as any).taxaAnual || 10,
+        taxaAnual: ((bem as any).taxaAnual || 10).toString(),
         categoria: (bem as any).categoria || 'Máquinas e Equipamentos'
       });
     } else {
       setEditingBem(null);
       setFormData({ 
         nome: '', 
-        valor: 0,
-        vidaUtil: 120,
+        valor: '',
+        vidaUtil: '120',
         dataCompra: new Date().toISOString().split('T')[0],
-        taxaAnual: 10,
+        taxaAnual: '10',
         categoria: 'Máquinas e Equipamentos'
       });
     }
@@ -99,8 +99,8 @@ export function Depreciacao() {
       setFormData({
         ...formData,
         categoria: catNome,
-        taxaAnual: cat.taxa,
-        vidaUtil: cat.vidaUtil
+        taxaAnual: cat.taxa.toString(),
+        vidaUtil: cat.vidaUtil.toString()
       });
     } else {
       setFormData({ ...formData, categoria: catNome });
@@ -115,6 +115,9 @@ export function Depreciacao() {
     try {
       const data = {
         ...formData,
+        valor: parseFloat(formData.valor) || 0,
+        vidaUtil: parseInt(formData.vidaUtil) || 120,
+        taxaAnual: parseFloat(formData.taxaAnual) || 10,
         uid: user.id,
         updatedAt: new Date().toISOString()
       };
@@ -364,7 +367,7 @@ export function Depreciacao() {
                     step="0.01"
                     required 
                     value={formData.valor}
-                    onChange={(e) => setFormData({ ...formData, valor: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, valor: cleanNumericInput(e.target.value) })}
                   />
                 </div>
                 <div className="space-y-2">
@@ -373,7 +376,7 @@ export function Depreciacao() {
                     type="number" 
                     required 
                     value={formData.vidaUtil}
-                    onChange={(e) => setFormData({ ...formData, vidaUtil: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, vidaUtil: cleanNumericInput(e.target.value) })}
                   />
                 </div>
               </div>
@@ -384,7 +387,7 @@ export function Depreciacao() {
                     type="number" 
                     required 
                     value={formData.taxaAnual}
-                    onChange={(e) => setFormData({ ...formData, taxaAnual: Number(e.target.value) })}
+                    onChange={(e) => setFormData({ ...formData, taxaAnual: cleanNumericInput(e.target.value) })}
                   />
                 </div>
                 <div className="space-y-2">
