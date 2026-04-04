@@ -45,6 +45,17 @@ export function Layout({ children }: { children: React.ReactNode }) {
   const [password, setPassword] = React.useState('');
   const { user, loading, error, signIn, signUp, logout } = useAuth();
 
+  React.useEffect(() => {
+    if (isSidebarOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [isSidebarOpen]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isSignUp) {
@@ -152,7 +163,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar (Desktop & Mobile Overlay) */}
       <aside className={cn(
-        "fixed inset-y-0 left-0 z-[60] w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0",
+        "fixed inset-y-0 left-0 z-[100] w-64 bg-white border-r transform transition-transform duration-300 ease-in-out md:relative md:translate-x-0 h-[100dvh] md:h-auto",
         isSidebarOpen ? "translate-x-0" : "-translate-x-full"
       )}>
         <div className="h-full flex flex-col">
@@ -160,7 +171,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
           <div className="flex md:hidden items-center justify-between px-6 py-4 border-b">
             <div className="flex items-center gap-2">
               <img src={LOGO_URL} alt="Logo" className="w-8 h-8 object-contain" referrerPolicy="no-referrer" />
-              <span className="font-bold text-neutral-900">Doce Gestão</span>
+              <div className="flex flex-col">
+                <span className="font-bold text-neutral-900 leading-none">Doce Gestão</span>
+                <span className="text-[10px] text-orange-500 font-bold">v1.2</span>
+              </div>
             </div>
             <button 
               onClick={() => setIsSidebarOpen(false)}
@@ -176,7 +190,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-neutral-900 text-lg leading-none">Doce Gestão</span>
-              <span className="text-xs text-neutral-500 mt-1">Precificação</span>
+              <span className="text-[10px] text-orange-500 mt-1 font-bold">v1.2 - Atualizado</span>
             </div>
           </div>
 
@@ -233,7 +247,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Overlay */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-black/40 backdrop-blur-sm z-[55] md:hidden"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[90] md:hidden"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}
@@ -246,31 +260,33 @@ export function Layout({ children }: { children: React.ReactNode }) {
       </main>
 
       {/* Mobile Bottom Navigation */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex items-center justify-around px-2 py-2 z-50">
-        {navItems.slice(0, 4).map((item) => {
-          const isActive = location.pathname === item.path;
-          return (
-            <Link
-              key={item.path}
-              to={item.path}
-              className={cn(
-                "flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors",
-                isActive ? "text-orange-600" : "text-neutral-500"
-              )}
-            >
-              <item.icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{item.label}</span>
-            </Link>
-          );
-        })}
-        <button
-          onClick={() => setIsSidebarOpen(true)}
-          className="flex flex-col items-center gap-1 px-3 py-1 rounded-lg text-neutral-500"
-        >
-          <Menu className="w-5 h-5" />
-          <span className="text-[10px] font-medium">Menu</span>
-        </button>
-      </nav>
+      {!isSidebarOpen && (
+        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t flex items-center justify-around px-2 py-2 z-50 animate-in slide-in-from-bottom duration-300">
+          {[navItems[0], navItems[1], navItems[2], navItems[6]].map((item) => {
+            const isActive = location.pathname === item.path;
+            return (
+              <Link
+                key={item.path}
+                to={item.path}
+                className={cn(
+                  "flex flex-col items-center gap-1 px-3 py-1 rounded-lg transition-colors",
+                  isActive ? "text-orange-600" : "text-neutral-500"
+                )}
+              >
+                <item.icon className="w-5 h-5" />
+                <span className="text-[10px] font-medium">{item.label}</span>
+              </Link>
+            );
+          })}
+          <button
+            onClick={() => setIsSidebarOpen(true)}
+            className="flex flex-col items-center gap-1 px-3 py-1 rounded-lg text-neutral-500"
+          >
+            <Menu className="w-5 h-5" />
+            <span className="text-[10px] font-medium">Menu</span>
+          </button>
+        </nav>
+      )}
     </div>
   );
 }
