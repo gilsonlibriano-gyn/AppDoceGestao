@@ -50,26 +50,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     
     // Map 'admin' username to a real email for cloud sync
     const targetEmail = email === 'admin' ? 'admin@deliciarte.com' : email;
+    // Supabase requires at least 6 characters. We append a suffix for the admin if needed.
+    const targetPassword = (email === 'admin' && password.length < 6) ? `${password}_admin` : password;
 
     try {
+      // Check if Supabase is properly configured
+      const isPlaceholder = supabase.auth.getSession === undefined || 
+                           (import.meta.env.VITE_SUPABASE_URL?.includes('placeholder'));
+      
+      if (isPlaceholder) {
+        throw new Error('CONFIG_MISSING');
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email: targetEmail,
-        password,
+        password: targetPassword,
       });
 
       // If it's the admin and it doesn't exist yet, try to auto-create it (one-time setup)
-      if (error && email === 'admin' && error.message === 'Invalid login credentials') {
+      if (error && email === 'admin' && (error.message === 'Invalid login credentials' || error.status === 400)) {
         const { error: signUpError } = await supabase.auth.signUp({
           email: targetEmail,
-          password,
+          password: targetPassword,
           options: { data: { full_name: 'Administrador' } }
         });
         
-        if (!signUpError) {
-          // Try sign in again after sign up
+        // If sign up succeeds or user already exists, try to sign in again
+        if (!signUpError || signUpError.message?.includes('already registered')) {
           const { error: secondSignInError } = await supabase.auth.signInWithPassword({ 
             email: targetEmail, 
-            password 
+            password: targetPassword 
           });
           if (secondSignInError) throw secondSignInError;
           return;
@@ -81,11 +91,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (err: any) {
       console.error("Login error:", err);
       let message = "Erro ao entrar. Verifique seu e-mail e senha.";
-      if (err.message === 'Invalid login credentials') {
+      
+      if (err.message === 'CONFIG_MISSING') {
+        message = "Configuração do Supabase ausente. Por favor, adicione as chaves VITE_SUPABASE_URL e VITE_SUPABASE_ANON_KEY no painel de Segredos (Secrets).";
+      } else if (err.message === 'Invalid login credentials') {
         message = "E-mail ou senha incorretos. Verifique os dados ou cadastre-se.";
       } else if (err.message === 'Email not confirmed') {
         message = "E-mail ainda não confirmado. Verifique sua caixa de entrada.";
+      } else if (err.message?.includes('at least 6 characters')) {
+        message = "A senha deve ter pelo menos 6 caracteres.";
+      } else if (err.status === 429) {
+        message = "Muitas tentativas. Tente novamente em alguns minutos.";
       }
+      
       setError(message);
     }
   };
