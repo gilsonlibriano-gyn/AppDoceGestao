@@ -34,7 +34,6 @@ import { CostService } from '../services/costService';
 import { useAuth } from '../contexts/AuthContext';
 import { dbService } from '../services/dbService';
 import { supabase } from '../supabase';
-import { BackupService } from '../services/backupService';
 
 export function Insumos() {
   const { user } = useAuth();
@@ -46,7 +45,6 @@ export function Insumos() {
   const [deletingId, setDeletingId] = React.useState<string | null>(null);
   const [editingInsumo, setEditingInsumo] = React.useState<MateriaPrima | null>(null);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
-  const [isExporting, setIsExporting] = React.useState(false);
 
   const [activeTab, setActiveTab] = React.useState<'INGREDIENTE' | 'EMBALAGEM'>('INGREDIENTE');
   const [sortOrder, setSortOrder] = React.useState<'asc' | 'desc' | 'none'>('none');
@@ -230,16 +228,6 @@ export function Insumos() {
     }
   };
 
-  const handleExport = async () => {
-    if (!user) return;
-    setIsExporting(true);
-    try {
-      await BackupService.exportData(user.id);
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   const filteredInsumos = React.useMemo(() => {
     let result = insumos.filter(i => 
       i.nome.toLowerCase().includes(searchTerm.toLowerCase()) &&
@@ -263,15 +251,6 @@ export function Insumos() {
           <p className="text-neutral-500">Controle de ingredientes e embalagens</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-3">
-          <Button 
-            variant="outline" 
-            onClick={handleExport}
-            disabled={isExporting}
-            className="w-full sm:w-auto border-neutral-200 text-neutral-600"
-          >
-            {isExporting ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Save className="w-4 h-4 mr-2" />}
-            Backup
-          </Button>
           <Button onClick={() => {
             setEditingInsumo(null);
             setFormData({
