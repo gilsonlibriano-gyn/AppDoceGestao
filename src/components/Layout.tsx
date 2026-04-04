@@ -24,6 +24,8 @@ import { cn } from '../lib/utils';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from './ui/Common';
 
+const LOGO_URL = "https://i.postimg.cc/TK7KPzdY/Logo-Doce-Gestao-Precificacao-com-doces.png";
+
 const navItems = [
   { icon: LayoutDashboard, label: 'Dashboard', path: '/' },
   { icon: Package, label: 'Insumos', path: '/insumos' },
@@ -56,8 +58,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
         <div className="flex flex-col items-center gap-4">
-          <div className="w-12 h-12 bg-orange-500 rounded-2xl flex items-center justify-center animate-bounce shadow-lg shadow-orange-200">
-            <ChefHat className="text-white w-7 h-7" />
+          <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center animate-bounce shadow-lg shadow-orange-100 overflow-hidden">
+            <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           </div>
           <p className="text-neutral-500 font-medium animate-pulse">Carregando Doce Gestão...</p>
         </div>
@@ -69,8 +71,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center p-4">
         <div className="max-w-md w-full bg-white rounded-3xl shadow-xl border border-neutral-100 p-8 animate-in fade-in zoom-in-95 duration-300">
-          <div className="w-16 h-16 bg-orange-500 rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-200">
-            <ChefHat className="text-white w-9 h-9" />
+          <div className="w-24 h-24 bg-white rounded-2xl flex items-center justify-center mx-auto mb-6 shadow-lg shadow-orange-100 overflow-hidden">
+            <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           </div>
           <h1 className="text-2xl font-bold text-neutral-900 mb-2 text-center">
             {isSignUp ? 'Criar sua conta' : 'Bem-vindo ao Doce Gestão'}
@@ -140,8 +142,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       {/* Mobile Header */}
       <header className="md:hidden bg-white border-b px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-orange-500 rounded-lg flex items-center justify-center">
-            <ChefHat className="text-white w-5 h-5" />
+          <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center overflow-hidden border border-neutral-100">
+            <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
           </div>
           <span className="font-bold text-neutral-900">Doce Gestão</span>
         </div>
@@ -160,8 +162,8 @@ export function Layout({ children }: { children: React.ReactNode }) {
       )}>
         <div className="h-full flex flex-col">
           <div className="hidden md:flex items-center gap-3 px-6 py-8">
-            <div className="w-10 h-10 bg-orange-500 rounded-xl flex items-center justify-center shadow-lg shadow-orange-200">
-              <ChefHat className="text-white w-6 h-6" />
+            <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center shadow-lg shadow-orange-100 overflow-hidden border border-neutral-100">
+              <img src={LOGO_URL} alt="Logo" className="w-full h-full object-contain" referrerPolicy="no-referrer" />
             </div>
             <div className="flex flex-col">
               <span className="font-bold text-neutral-900 text-lg leading-none">Doce Gestão</span>
